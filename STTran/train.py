@@ -18,6 +18,10 @@ from lib.sttran import STTran
 
 """------------------------------------some settings----------------------------------------"""
 conf = Config()
+
+# os.environ['CUDA_AVALIABLE_DEVICES']=conf.gpu
+# using the "CUDA_AVALIABLE_DEVICES" as the format of command.
+
 print('The CKPT saved here:', conf.save_path)
 if not os.path.exists(conf.save_path):
     os.mkdir(conf.save_path)
@@ -36,7 +40,11 @@ dataloader_test = torch.utils.data.DataLoader(AG_dataset_test, shuffle=False, nu
                                               collate_fn=cuda_collate_fn, pin_memory=False)
 ### try to solve the error: RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED. But the speed is appearantly slow.
 torch.backends.cudnn.enabled=conf.cudnn
-gpu_device = torch.device("cuda:{}".format(conf.gpu))
+
+# gpu_device = torch.device("cuda:{}".format(conf.gpu))
+## if there are multi-GPU, could use multi-GPU for training, evaluation.
+gpu_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 # freeze the detection backbone
 object_detector = detector(train=True, object_classes=AG_dataset_train.object_classes, use_SUPPLY=True, mode=conf.mode).to(device=gpu_device)
 object_detector.eval()
@@ -88,15 +96,15 @@ for epoch in range(conf.nepoch):
     for b in range(len(dataloader_train)):
         data = next(train_iter)
 
-        im_data = copy.deepcopy(data[0].cuda(conf.gpu))
-        im_info = copy.deepcopy(data[1].cuda(conf.gpu))
-        gt_boxes = copy.deepcopy(data[2].cuda(conf.gpu))
-        num_boxes = copy.deepcopy(data[3].cuda(conf.gpu))
+        im_data = copy.deepcopy(data[0].cuda())
+        im_info = copy.deepcopy(data[1].cuda())
+        gt_boxes = copy.deepcopy(data[2].cuda())
+        num_boxes = copy.deepcopy(data[3].cuda())
         gt_annotation = AG_dataset_train.gt_annotations[data[4]]
 
         # prevent gradients to FasterRCNN
         with torch.no_grad():
-            entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation ,im_all=None, gpu=conf.gpu)
+            entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation ,im_all=None)
 
         pred = model(entry)
 
@@ -161,13 +169,13 @@ for epoch in range(conf.nepoch):
     with torch.no_grad():
         for b in range(len(dataloader_test)):
             data = next(test_iter)
-            im_data = copy.deepcopy(data[0].cuda(conf.gpu))
-            im_info = copy.deepcopy(data[1].cuda(conf.gpu))
-            gt_boxes = copy.deepcopy(data[2].cuda(conf.gpu))
-            num_boxes = copy.deepcopy(data[3].cuda(conf.gpu))
+            im_data = copy.deepcopy(data[0].cuda())
+            im_info = copy.deepcopy(data[1].cuda())
+            gt_boxes = copy.deepcopy(data[2].cuda())
+            num_boxes = copy.deepcopy(data[3].cuda())
             gt_annotation = AG_dataset_test.gt_annotations[data[4]]
 
-            entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all=None, gpu=conf.gpu)
+            entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all=None)
             pred = model(entry)
             evaluator.evaluate_scene_graph(gt_annotation, pred)
         print('-----------', flush=True)

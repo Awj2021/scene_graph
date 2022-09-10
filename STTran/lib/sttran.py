@@ -18,11 +18,10 @@ class ObjectClassifier(nn.Module):
     Module for computing the object contexts and edge contexts
     """
 
-    def __init__(self, mode='sgdet', obj_classes=None, gpu=0):
+    def __init__(self, mode='sgdet', obj_classes=None):
         super(ObjectClassifier, self).__init__()
         self.classes = obj_classes
         self.mode = mode
-        self.gpu = gpu
 
         #----------add nms when sgdet
         self.nms_filter_duplicates = True
@@ -65,7 +64,7 @@ class ObjectClassifier(nn.Module):
             if new_scores.shape[0] > 0:
                 new_labels = torch.argmax(new_scores, dim=1) + 1
             else:
-                new_labels = torch.tensor([], dtype=torch.long).cuda(self.gpu)
+                new_labels = torch.tensor([], dtype=torch.long).cuda()
 
             final_dists.append(scores)
             final_dists.append(new_scores)
@@ -265,7 +264,7 @@ class STTran(nn.Module):
 
     def __init__(self, mode='sgdet',
                  attention_class_num=None, spatial_class_num=None, contact_class_num=None, obj_classes=None, rel_classes=None,
-                 enc_layer_num=None, dec_layer_num=None, gpu=0):
+                 enc_layer_num=None, dec_layer_num=None):
 
         """
         :param classes: Object classes
@@ -281,7 +280,7 @@ class STTran(nn.Module):
         assert mode in ('sgdet', 'sgcls', 'predcls')
         self.mode = mode
 
-        self.object_classifier = ObjectClassifier(mode=self.mode, obj_classes=self.obj_classes, gpu=gpu)
+        self.object_classifier = ObjectClassifier(mode=self.mode, obj_classes=self.obj_classes)
 
         ###################################
         self.union_func1 = nn.Conv2d(1024, 256, 1, 1)

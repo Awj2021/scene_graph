@@ -32,18 +32,18 @@ class detector(nn.Module):
         self.ROI_Align = copy.deepcopy(self.fasterRCNN.RCNN_roi_align)
         self.RCNN_Head = copy.deepcopy(self.fasterRCNN._head_to_tail)
 
-    def forward(self, im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all, gpu):
+    def forward(self, im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all):
 
         if self.mode == 'sgdet':
             counter = 0
             counter_image = 0
 
             # create saved-bbox, labels, scores, features
-            FINAL_BBOXES = torch.tensor([]).cuda(gpu)
-            FINAL_LABELS = torch.tensor([], dtype=torch.int64).cuda(gpu)
-            FINAL_SCORES = torch.tensor([]).cuda(gpu)
-            FINAL_FEATURES = torch.tensor([]).cuda(gpu)
-            FINAL_BASE_FEATURES = torch.tensor([]).cuda(gpu)
+            FINAL_BBOXES = torch.tensor([]).cuda()
+            FINAL_LABELS = torch.tensor([], dtype=torch.int64).cuda()
+            FINAL_SCORES = torch.tensor([]).cuda()
+            FINAL_FEATURES = torch.tensor([]).cuda()
+            FINAL_BASE_FEATURES = torch.tensor([]).cuda()
 
             while counter < im_data.shape[0]:
                 #compute 10 images in batch and  collect all frames data in the video
@@ -66,8 +66,8 @@ class detector(nn.Module):
                 boxes = rois.data[:, :, 1:5]
                 # bbox regression (class specific)
                 box_deltas = bbox_pred.data
-                box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor([0.1, 0.1, 0.2, 0.2]).cuda(gpu) \
-                             + torch.FloatTensor([0.0, 0.0, 0.0, 0.0]).cuda(gpu)  # the first is normalize std, the second is mean
+                box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor([0.1, 0.1, 0.2, 0.2]).cuda() \
+                             + torch.FloatTensor([0.0, 0.0, 0.0, 0.0]).cuda()  # the first is normalize std, the second is mean
                 box_deltas = box_deltas.view(-1, rois.shape[1], 4 * len(self.object_classes))  # post_NMS_NTOP: 30
                 pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
                 PRED_BOXES = clip_boxes(pred_boxes, im_info.data, 1)
@@ -97,15 +97,15 @@ class detector(nn.Module):
                                 # for person we only keep the highest score for person!
                                 final_bbox = cls_dets[0,0:4].unsqueeze(0)
                                 final_score = cls_dets[0,4].unsqueeze(0)
-                                final_labels = torch.tensor([j]).cuda(gpu)
+                                final_labels = torch.tensor([j]).cuda()
                                 final_features = roi_features[i, inds[order[keep][0]]].unsqueeze(0)
                             else:
                                 final_bbox = cls_dets[:, 0:4]
                                 final_score = cls_dets[:, 4]
-                                final_labels = torch.tensor([j]).repeat(keep.shape[0]).cuda(gpu)
+                                final_labels = torch.tensor([j]).repeat(keep.shape[0]).cuda()
                                 final_features = roi_features[i, inds[order[keep]]]
 
-                            final_bbox = torch.cat((torch.tensor([[counter_image]], dtype=torch.float).repeat(final_bbox.shape[0], 1).cuda(gpu),
+                            final_bbox = torch.cat((torch.tensor([[counter_image]], dtype=torch.float).repeat(final_bbox.shape[0], 1).cuda(),
                                                     final_bbox), 1)
                             FINAL_BBOXES = torch.cat((FINAL_BBOXES, final_bbox), 0)
                             FINAL_LABELS = torch.cat((FINAL_LABELS, final_labels), 0)
@@ -126,17 +126,17 @@ class detector(nn.Module):
 
                 if self.use_SUPPLY:
                     # supply the unfounded gt boxes by detector into the scene graph generation training
-                    FINAL_BBOXES_X = torch.tensor([]).cuda(gpu)
-                    FINAL_LABELS_X = torch.tensor([], dtype=torch.int64).cuda(gpu)
-                    FINAL_SCORES_X = torch.tensor([]).cuda(gpu)
-                    FINAL_FEATURES_X = torch.tensor([]).cuda(gpu)
+                    FINAL_BBOXES_X = torch.tensor([]).cuda()
+                    FINAL_LABELS_X = torch.tensor([], dtype=torch.int64).cuda()
+                    FINAL_SCORES_X = torch.tensor([]).cuda()
+                    FINAL_FEATURES_X = torch.tensor([]).cuda()
                     assigned_labels = torch.tensor(assigned_labels, dtype=torch.long).to(FINAL_BBOXES_X.device)
 
                     for i, j in enumerate(SUPPLY_RELATIONS):
                         if len(j) > 0:
-                            unfound_gt_bboxes = torch.zeros([len(j), 5]).cuda(gpu)
-                            unfound_gt_classes = torch.zeros([len(j)], dtype=torch.int64).cuda(gpu)
-                            one_scores = torch.ones([len(j)], dtype=torch.float32).cuda(gpu)  # probability
+                            unfound_gt_bboxes = torch.zeros([len(j), 5]).cuda()
+                            unfound_gt_classes = torch.zeros([len(j)], dtype=torch.int64).cuda()
+                            one_scores = torch.ones([len(j)], dtype=torch.float32).cuda()  # probability
                             for m, n in enumerate(j):
                                 # if person box is missing or objects
                                 if 'bbox' in n.keys():
@@ -161,7 +161,7 @@ class detector(nn.Module):
 
                             # compute the features of unfound gt_boxes
                             pooled_feat = self.fasterRCNN.RCNN_roi_align(FINAL_BASE_FEATURES[i].unsqueeze(0),
-                                                                         unfound_gt_bboxes.cuda(gpu))
+                                                                         unfound_gt_bboxes.cuda())
                             pooled_feat = self.fasterRCNN._head_to_tail(pooled_feat)
                             cls_prob = F.softmax(self.fasterRCNN.RCNN_cls_score(pooled_feat), 1)
 
@@ -207,8 +207,8 @@ class detector(nn.Module):
                             s_rel.append(GT_RELATIONS[i][m]['spatial_relationship'].tolist())
                             c_rel.append(GT_RELATIONS[i][m]['contacting_relationship'].tolist())
 
-                pair = torch.tensor(pair).cuda(gpu)
-                im_idx = torch.tensor(im_idx, dtype=torch.float).cuda(gpu)
+                pair = torch.tensor(pair).cuda()
+                im_idx = torch.tensor(im_idx, dtype=torch.float).cuda()
                 union_boxes = torch.cat((im_idx[:, None],
                                          torch.min(FINAL_BBOXES_X[:, 1:3][pair[:, 0]],
                                                    FINAL_BBOXES_X[:, 1:3][pair[:, 1]]),
@@ -262,10 +262,10 @@ class detector(nn.Module):
 
             for i in gt_annotation:
                 bbox_num += len(i)
-            FINAL_BBOXES = torch.zeros([bbox_num,5], dtype=torch.float32).cuda(gpu)
-            FINAL_LABELS = torch.zeros([bbox_num], dtype=torch.int64).cuda(gpu)
-            FINAL_SCORES = torch.ones([bbox_num], dtype=torch.float32).cuda(gpu)
-            HUMAN_IDX = torch.zeros([len(gt_annotation),1], dtype=torch.int64).cuda(gpu)
+            FINAL_BBOXES = torch.zeros([bbox_num,5], dtype=torch.float32).cuda()
+            FINAL_LABELS = torch.zeros([bbox_num], dtype=torch.int64).cuda()
+            FINAL_SCORES = torch.ones([bbox_num], dtype=torch.float32).cuda()
+            HUMAN_IDX = torch.zeros([len(gt_annotation),1], dtype=torch.int64).cuda()
 
             bbox_idx = 0
             for i, j in enumerate(gt_annotation):
@@ -286,11 +286,11 @@ class detector(nn.Module):
                         s_rel.append(m['spatial_relationship'].tolist())
                         c_rel.append(m['contacting_relationship'].tolist())
                         bbox_idx += 1
-            pair = torch.tensor(pair).cuda(gpu)
-            im_idx = torch.tensor(im_idx, dtype=torch.float).cuda(gpu)
+            pair = torch.tensor(pair).cuda()
+            im_idx = torch.tensor(im_idx, dtype=torch.float).cuda()
 
             counter = 0
-            FINAL_BASE_FEATURES = torch.tensor([]).cuda(gpu)
+            FINAL_BASE_FEATURES = torch.tensor([]).cuda()
 
             while counter < im_data.shape[0]:
                 #compute 10 images in batch and  collect all frames data in the video

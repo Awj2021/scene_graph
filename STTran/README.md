@@ -94,3 +94,11 @@ If our work is helpful for your research, please cite our publication:
 ```
 ## Help 
 When you have any question/idea about the code/paper. Please comment in Github or send us Email. We will reply as soon as possible.
+
+
+## Modification
+### Version: running and testing using ActionGenone Dataset.
+Runing the code as the author suggested. But some error will occur. So I modify the code and summarize the environment setting.(More see my Notion.)
+```
+CUDA_VISIBLE_DEVICES=3 CUDA_LAUNCH_BLOCKING=1 python train.py -mode sgdet -datasize mini/large -data_path $path --cudnn True
+```
