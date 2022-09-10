@@ -34,8 +34,9 @@ AG_dataset_test = AG(mode="test", datasize=conf.datasize, data_path=conf.data_pa
                      filter_small_box=False if conf.mode == 'predcls' else True)
 dataloader_test = torch.utils.data.DataLoader(AG_dataset_test, shuffle=False, num_workers=4,
                                               collate_fn=cuda_collate_fn, pin_memory=False)
-
-gpu_device = torch.device("cuda:0")
+### try to solve the error: RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED. But the speed is appearantly slow.
+torch.backends.cudnn.enabled=conf.cudnn
+gpu_device = torch.device("cuda:{}".format(conf.gpu))
 # freeze the detection backbone
 object_detector = detector(train=True, object_classes=AG_dataset_train.object_classes, use_SUPPLY=True, mode=conf.mode).to(device=gpu_device)
 object_detector.eval()
@@ -87,10 +88,10 @@ for epoch in range(conf.nepoch):
     for b in range(len(dataloader_train)):
         data = next(train_iter)
 
-        im_data = copy.deepcopy(data[0].cuda(gpu))
-        im_info = copy.deepcopy(data[1].cuda(gpu))
-        gt_boxes = copy.deepcopy(data[2].cuda(gpu))
-        num_boxes = copy.deepcopy(data[3].cuda(gpu))
+        im_data = copy.deepcopy(data[0].cuda(conf.gpu))
+        im_info = copy.deepcopy(data[1].cuda(conf.gpu))
+        gt_boxes = copy.deepcopy(data[2].cuda(conf.gpu))
+        num_boxes = copy.deepcopy(data[3].cuda(conf.gpu))
         gt_annotation = AG_dataset_train.gt_annotations[data[4]]
 
         # prevent gradients to FasterRCNN
@@ -135,13 +136,14 @@ for epoch in range(conf.nepoch):
 
         optimizer.zero_grad()
         loss = sum(losses.values())
+        ### some error occur.
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5, norm_type=2)
         optimizer.step()
 
         tr.append(pd.Series({x: y.item() for x, y in losses.items()}))
 
-        if b % 1000 == 0 and b >= 1000:
+        if b % 100 == 0 and b >= 100:
             time_per_batch = (time.time() - start) / 1000
             print("\ne{:2d}  b{:5d}/{:5d}  {:.3f}s/batch, {:.1f}m/epoch".format(epoch, b, len(dataloader_train),
                                                                                 time_per_batch, len(dataloader_train) * time_per_batch / 60))
@@ -159,14 +161,13 @@ for epoch in range(conf.nepoch):
     with torch.no_grad():
         for b in range(len(dataloader_test)):
             data = next(test_iter)
-
-            im_data = copy.deepcopy(data[0].cuda(gpu))
-            im_info = copy.deepcopy(data[1].cuda(gpu))
-            gt_boxes = copy.deepcopy(data[2].cuda(gpu))
-            num_boxes = copy.deepcopy(data[3].cuda(gpu))
+            im_data = copy.deepcopy(data[0].cuda(conf.gpu))
+            im_info = copy.deepcopy(data[1].cuda(conf.gpu))
+            gt_boxes = copy.deepcopy(data[2].cuda(conf.gpu))
+            num_boxes = copy.deepcopy(data[3].cuda(conf.gpu))
             gt_annotation = AG_dataset_test.gt_annotations[data[4]]
 
-            entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all=None)
+            entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all=None, gpu=conf.gpu)
             pred = model(entry)
             evaluator.evaluate_scene_graph(gt_annotation, pred)
         print('-----------', flush=True)
@@ -174,6 +175,3 @@ for epoch in range(conf.nepoch):
     evaluator.print_stats()
     evaluator.reset_result()
     scheduler.step(score)
-
-
-

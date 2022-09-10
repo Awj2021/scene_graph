@@ -29,7 +29,8 @@ model = STTran(mode=conf.mode,
                contact_class_num=len(AG_dataset.contacting_relationships),
                obj_classes=AG_dataset.object_classes,
                enc_layer_num=conf.enc_layer,
-               dec_layer_num=conf.dec_layer).to(device=gpu_device)
+               dec_layer_num=conf.dec_layer,
+               gpu=conf.gpu).to(device=gpu_device)
 
 model.eval()
 
@@ -71,10 +72,10 @@ evaluator3 = BasicSceneGraphEvaluator(
 with torch.no_grad():
     for b, data in enumerate(dataloader):
 
-        im_data = copy.deepcopy(data[0].cuda(0))
-        im_info = copy.deepcopy(data[1].cuda(0))
-        gt_boxes = copy.deepcopy(data[2].cuda(0))
-        num_boxes = copy.deepcopy(data[3].cuda(0))
+        im_data = copy.deepcopy(data[0].cuda(conf.gpu))
+        im_info = copy.deepcopy(data[1].cuda(conf.gpu))
+        gt_boxes = copy.deepcopy(data[2].cuda(conf.gpu))
+        num_boxes = copy.deepcopy(data[3].cuda(conf.gpu))
         gt_annotation = AG_dataset.gt_annotations[data[4]]
 
         entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all=None)

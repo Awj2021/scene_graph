@@ -45,5 +45,6 @@ class Config(object):
         parser.add_argument('-bce_loss', action='store_true')
 
         parser.add_argument('--gpu', default='0', help='the No. of using cuda.', type=int)
+        parser.add_argument('--cudnn', default=True, type=bool, help='whether using cudnn to accelate or not.')
         
         return parser
