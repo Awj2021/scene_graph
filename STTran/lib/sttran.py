@@ -207,7 +207,7 @@ class ObjectClassifier(nn.Module):
 
                             final_dists.append(cls_dists[keep.view(-1).long()])
                             final_boxes.append(torch.cat((torch.tensor([[i]], dtype=torch.float).repeat(keep.shape[0],
-                                                                                                        1).cuda(self.gpu),
+                                                                                                        1).cuda(),
                                                           cls_boxes[order, :][keep.view(-1).long()]), 1))
                             final_feats.append(cls_feats[keep.view(-1).long()])
 
