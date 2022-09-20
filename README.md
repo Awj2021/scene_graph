@@ -1,11 +1,16 @@
 # scene_graph
 Some baselines of scene graph, and testing them using our model
 
+## Training Environmetn: trace1. 
+If you want to run this model with your own environment, please refer to the trace1(you could clone 
+the conda environment and then motify.)
+
+基本上，按照作者提供的文件组织方式，然后注意以下踩过的坑，就可以比较快的运行起来了。
 ## README.md中步骤问题
 rename.py和dump.py的步骤得进行修改；
 
-### 不要忘记txt2json这个步骤
-tools/txt2json.py 
+### 不要忘记txt2json这个步骤 (only for the "Action Genone" dataset)
+tools/txt2json.py  
 
 
 ### 作者提供的数据处理步骤有问题

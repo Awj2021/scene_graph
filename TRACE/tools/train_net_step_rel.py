@@ -354,7 +354,10 @@ def main(args):
         batch_sampler=batchSampler,
         num_workers=cfg.DATA_LOADER.NUM_THREADS,
         collate_fn=collate_minibatch)
+
+    
     dataiterator = iter(dataloader)
+
 
     ### Model ###
     maskRCNN = Generalized_RCNN()
