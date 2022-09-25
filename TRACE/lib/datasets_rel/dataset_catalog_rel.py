@@ -168,6 +168,36 @@ DATASETS = {
         ANN_FN5:
             _DATA_DIR + '/vidvrd/annotations/val_fname_list.json',
     },
+    # Chaos Dataset
+    'chaos_train': {
+        IM_DIR:
+            _DATA_DIR + '/chaos/frames',
+        ANN_FN:
+            _DATA_DIR + '/chaos/annotations/detections_train.json',
+        ANN_FN2:
+            _DATA_DIR + '/chaos/annotations/new_annotations_train.json',
+        ANN_FN3:
+            _DATA_DIR + '/chaos/annotations/predicates.json',
+        ANN_FN4:
+            _DATA_DIR + '/chaos/annotations/train_fname_mapping.json',
+        ANN_FN5:
+            _DATA_DIR + '/chaos/annotations/train_fname_list.json',
+    },
+    
+    'chaos_val': {
+        IM_DIR:
+            _DATA_DIR + '/chaos/frames',
+        ANN_FN:
+            _DATA_DIR + '/chaos/annotations/detections_val.json',
+        ANN_FN2:
+            _DATA_DIR + '/chaos/annotations/new_annotations_val.json',
+        ANN_FN3:
+            _DATA_DIR + '/chaos/annotations/predicates.json',
+        ANN_FN4:
+            _DATA_DIR + '/chaos/annotations/val_fname_mapping.json',
+        ANN_FN5:
+            _DATA_DIR + '/chaos/annotations/val_fname_list.json',
+    },
     # ActionGenome dataset
     'ag_train': {
         IM_DIR:

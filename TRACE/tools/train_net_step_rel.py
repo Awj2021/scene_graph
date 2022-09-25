@@ -205,6 +205,18 @@ def main(args):
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/vidvrd/annotations/objects.json')
         cfg.MODEL.NUM_CLASSES = 36
         cfg.MODEL.NUM_PRD_CLASSES = 132  # exclude background
+
+    elif args.dataset == "chaos":
+        cfg.TRAIN.DATASETS = ('chaos_train',)
+        cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
+        cfg.MODEL.NUM_CLASSES = 1
+        cfg.MODEL.NUM_PRD_CLASSES = 2  # exclude background 
+    elif args.dataset == "chaos_val":
+        cfg.TRAIN.DATASETS = ('chaos_val',)
+        cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
+        cfg.MODEL.NUM_CLASSES = 1
+        cfg.MODEL.NUM_PRD_CLASSES = 2  # exclude background  
+
     elif args.dataset == "ag":
         cfg.TRAIN.DATASETS = ('ag_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/ag/annotations/objects.json')
