@@ -78,6 +78,18 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
             if len(ll) >= 2:
                 val_map_list_.add(ll[-2].split('.')[-2])
         val_map_list = list(val_map_list_)
+    ## Add the chaos.
+    elif cfg.TEST.DATASETS[0].find('chaos') >= 0:
+        val_map_list_path = os.path.join(cfg.ROOT_DIR, 'data', 'chaos', 'annotations/val_fname_list.json')
+        with open(val_map_list_path, 'r') as f:
+            val_map_list = json.load(f)
+            f.close()
+        val_map_list_ = set()
+        for i, v in enumerate(val_map_list):
+            ll = v.split('/')
+            if len(ll) >= 2:
+                val_map_list_.add(ll[-2].split('.')[-2])
+        val_map_list = list(val_map_list_)
     else:
         raise Exception
     print('test_videos_list.json loaded.')
@@ -93,6 +105,9 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
         #prd_k_set = tuple(prd_k_set)
         #prd_k_set = (132, )
         prd_k_set = (20, )
+    ### number of predicate.
+    elif cfg.TEST.DATASETS[0].find('chaos') >= 0:
+        prd_k_set = (10, ) 
     elif cfg.TEST.DATASETS[0].find('vg') >= 0:
         prd_k_set = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20)
     elif cfg.TEST.DATASETS[0].find('vrd') >= 0:

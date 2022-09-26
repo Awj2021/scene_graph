@@ -46,6 +46,7 @@ def get_rel_counts(ds_name, must_overlap=True):
 #         raise NotImplementedError
 
     if len(cfg.TRAIN.DATASETS) > 0:
+        # cfg.TRAIN.DATASETS[0]][ANN_FN2]: new_annotations_train.json
         with open(DATASETS[cfg.TRAIN.DATASETS[0]][ANN_FN2]) as f:
             train_data = json.load(f)
     else:

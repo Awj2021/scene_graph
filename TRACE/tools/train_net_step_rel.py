@@ -42,7 +42,6 @@ import gc
 import inspect
 from PytorchMemoryUtils.gpu_mem_track import MemTracker
 
-
 cv2.setNumThreads(0)  # pytorch issue 1355: possible deadlock in dataloader
 
 # Set up logging and load config options
@@ -205,16 +204,16 @@ def main(args):
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/vidvrd/annotations/objects.json')
         cfg.MODEL.NUM_CLASSES = 36
         cfg.MODEL.NUM_PRD_CLASSES = 132  # exclude background
-
+    # add the dataset of chaos.
     elif args.dataset == "chaos":
         cfg.TRAIN.DATASETS = ('chaos_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
-        cfg.MODEL.NUM_CLASSES = 1
+        cfg.MODEL.NUM_CLASSES = 36     # including the background. so the classes are ['person', 'background']
         cfg.MODEL.NUM_PRD_CLASSES = 2  # exclude background 
     elif args.dataset == "chaos_val":
         cfg.TRAIN.DATASETS = ('chaos_val',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
-        cfg.MODEL.NUM_CLASSES = 1
+        cfg.MODEL.NUM_CLASSES = 36
         cfg.MODEL.NUM_PRD_CLASSES = 2  # exclude background  
 
     elif args.dataset == "ag":
@@ -369,7 +368,6 @@ def main(args):
 
     
     dataiterator = iter(dataloader)
-
 
     ### Model ###
     maskRCNN = Generalized_RCNN()

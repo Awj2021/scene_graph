@@ -61,10 +61,10 @@ def get_box_from_track(tracklet_clip, obj_list, tid, obj_class_list, video_id):
         category = obj_list[tid]['category']
     if flg is not True:
         assert False
-    x1 = tracklet_clip['bbox']['xmin']
-    y1 = tracklet_clip['bbox']['ymin']
-    x2 = tracklet_clip['bbox']['xmax']
-    y2 = tracklet_clip['bbox']['ymax']
+    x1 = int(tracklet_clip['bbox']['xmin'])
+    y1 = int(tracklet_clip['bbox']['ymin'])
+    x2 = int(tracklet_clip['bbox']['xmax'])
+    y2 = int(tracklet_clip['bbox']['ymax'])
     ans = {"category": obj_class2int(category, obj_class_list), 
             "bbox": [y1, y2, x1, x2]}
     return ans
