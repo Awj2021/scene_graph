@@ -1,21 +1,23 @@
-
 import os
 import json
+import sys
 from tqdm import tqdm
 import numpy as np
 import torch
 import pickle
 from copy import deepcopy
 import random
+import sys
+sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
 from collections import defaultdict
-from utils.utils_func import is_overlap, merge_duration_list,linear_interpolation
-from utils.categories_v2 import vidvrd_CatName2Id,vidvrd_PredName2Id
-    
+from utils_func import is_overlap, merge_duration_list,linear_interpolation
+from categories_v2 import vidvrd_CatName2Id,vidvrd_PredName2Id
+import ipdb    
 class TrajProposal(object):
     def __init__(self,video_name,
         cat_ids,traj_bboxes_with_score,traj_durations,roi_features,MAX_PROPOSAL):
         """
-        roi_features： list[np.arry], len==num_proposals, shape == (num_frames,dim)
+        roi_features: list[np.arry], len==num_proposals, shape == (num_frames,dim)
         """
         self.MAX_PROPOSAL = MAX_PROPOSAL
         self.video_name = video_name
@@ -242,7 +244,7 @@ class Dataset(object):
             trajs[tid]["bboxes"] = []
             trajs[tid]["roi_features"] = []
             trajs[tid]["category_id"] = []   # 如果某个tid只有len==6的box_info，那就无法获取 category_id ，默认为背景
-
+        # ipdb.set_trace()
         for box_info in track_res:
             if not isinstance(box_info,list):
                 box_info = box_info.tolist()

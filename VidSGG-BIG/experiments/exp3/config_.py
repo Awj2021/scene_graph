@@ -16,8 +16,8 @@ model_config = dict(
     num_querys      = 192,
     neg_weight      = 0.1,
     positive_vIoU_th= 0.5,
-    EntiNameEmb_path= "prepared_data/vidvrd_EntiNameEmb.npy",
-    bias_matrix_path= "prepared_data/pred_bias_matrix_vidvrd.npy",
+    EntiNameEmb_path= "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/prepared_data/vidvrd_EntiNameEmb.npy",
+    bias_matrix_path= "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/prepared_data/pred_bias_matrix_vidvrd.npy",
     cost_coeff_dict = dict(
         classification      = 1.0,
         adj_matrix          = 30.0,
@@ -30,8 +30,8 @@ model_config = dict(
 
 train_dataset_config = dict(
     split = "train",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
-    proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/miss30_minscore0p3/VidVRD_train_every1frames",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset",
+    proposal_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/tracking_results/train",
     dim_boxfeature = 1024,
     min_frames_th = 5,
     max_proposal = 50,
@@ -42,8 +42,8 @@ train_dataset_config = dict(
 
 test_dataset_config = dict(
     split = "test",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
-    proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/miss30_minscore0p3/VidVRD_test_every1frames",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset",
+    proposal_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/tracking_results/test",
     dim_boxfeature = 1024,
     min_frames_th = 5,
     max_proposal = 150,
@@ -53,7 +53,7 @@ test_dataset_config = dict(
 
 
 train_config = dict(
-    batch_size          = 8,
+    batch_size          = 1,
     total_epoch         = 120,
     initial_lr          = 1e-4,
     lr_decay            = 0.2,

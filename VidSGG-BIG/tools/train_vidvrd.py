@@ -8,12 +8,13 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter       
 from tqdm import tqdm
 from collections import defaultdict
-
-from dataloaders.dataloader_vidvrd import Dataset,Dataset_pku,Dataset_pku_i3d
+import sys
+sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
+from dataloaders.dataloader_vidvrd import Dataset, Dataset_pku_i3d, Dataset_pku_i3d
 from models import BIG_C_vidvrd
 
-from utils.DataParallel import VidSGG_DataParallel
-from utils.utils_func import create_logger,parse_config_py
+from DataParallel import VidSGG_DataParallel
+from utils_func import create_logger,parse_config_py
 
 torch.set_printoptions(sci_mode=False,precision=4,linewidth=160)
 
@@ -40,7 +41,7 @@ def save_checkpoint(batch_size,crt_epoch,model,optimizer,scheduler,save_path):
 
 def train(
     cfg_path,
-    use_pku =True,
+    use_pku =False,
     experiment_dir=None,
     save_tag = "",
     from_checkpoint = False,

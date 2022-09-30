@@ -3,12 +3,14 @@ import root_path
 from tqdm import tqdm
 import argparse
 import torch
+import sys
+sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
 
 from dataloaders.dataloader_vidor_v3 import Dataset as Dataset_vidor
 from dataloaders.dataloader_vidvrd import Dataset as Dataset_vidvrd
 from dataloaders.dataloader_vidvrd import Dataset_pku,Dataset_pku_i3d
 
-from utils.utils_func import parse_config_py
+from utils_func import parse_config_py
 
 def demo(dataset_class,dataset_config):
     ## construct dataset

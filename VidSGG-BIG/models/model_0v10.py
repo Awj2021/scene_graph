@@ -3,11 +3,11 @@ from typing import Optional, List
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-
-
+import sys
+sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from utils.utils_func import vIoU_ts,dura_intersection_ts,unique_with_idx_nd,stack_with_padding
+from utils_func import vIoU_ts,dura_intersection_ts,unique_with_idx_nd,stack_with_padding
 
 ## notations: 
 # dim_q == dim_query == dim_pred
