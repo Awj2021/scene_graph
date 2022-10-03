@@ -53,7 +53,7 @@ test_dataset_config = dict(
 
 
 train_config = dict(
-    batch_size          = 1,
+    batch_size          = 2,
     total_epoch         = 120,
     initial_lr          = 1e-4,
     lr_decay            = 0.2,

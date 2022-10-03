@@ -10,9 +10,12 @@ from copy import deepcopy
 import random
 from collections import defaultdict
 
-from utils.utils_func import is_overlap, merge_duration_list,VidRead2ImgNpLits
-from utils.utils_func import dura_intersection,traj_cutoff,linear_interpolation
-from utils.categories_v2 import vidor_CatName2Id,vidor_PredName2Id,vidor_CatId2name,vidor_PredId2name
+import sys
+sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
+
+from utils_func import is_overlap, merge_duration_list,VidRead2ImgNpLits
+from utils_func import dura_intersection,traj_cutoff,linear_interpolation
+from categories_v2 import vidor_CatName2Id,vidor_PredName2Id,vidor_CatId2name,vidor_PredId2name
 
     
 class TrajProposal(object):

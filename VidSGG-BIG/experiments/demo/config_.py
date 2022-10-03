@@ -2,7 +2,7 @@
 ######### for PKU without I3D ################
 pku_train_dataset_config = dict(
     split = "train",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset",
     proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/PKU_beyond/videovrd_detect_tracking",
     dim_boxfeature = 2048,
     min_frames_th = 5,
@@ -14,7 +14,7 @@ pku_train_dataset_config = dict(
 
 pku_test_dataset_config = dict(
     split = "test",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset",
     proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/PKU_beyond/videovrd_detect_tracking",
     dim_boxfeature = 2048,
     min_frames_th = 5,
@@ -27,7 +27,7 @@ pku_test_dataset_config = dict(
 
 pku_i3d_train_dataset_config = dict(
     split = "train",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset",
     proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/PKU_beyond/videovrd_detect_tracking",
     i3d_dir = "proposals/vidvrd-dataset/PKU_beyond/videovrd_i3d",
     dim_i3d = 832,
@@ -41,7 +41,7 @@ pku_i3d_train_dataset_config = dict(
 
 pku_i3d_test_dataset_config = dict(
     split = "test",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset",
     proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/PKU_beyond/videovrd_detect_tracking",
     i3d_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/PKU_beyond/videovrd_i3d",
     dim_i3d = 832,
@@ -55,8 +55,8 @@ pku_i3d_test_dataset_config = dict(
 ######### for MEGA ################
 vidvrd_train_dataset_config = dict(
     split = "train",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
-    proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/miss30_minscore0p3/VidVRD_train_every1frames",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset/train",
+    proposal_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/tracking_results",
     dim_boxfeature = 1024,
     min_frames_th = 5,
     max_proposal = 50,
@@ -67,8 +67,8 @@ vidvrd_train_dataset_config = dict(
 
 vidvrd_test_dataset_config = dict(
     split = "test",
-    ann_dir = "/home/gkf/project/VideoGraph/datasets/vidvrd-dataset",
-    proposal_dir = "/home/gkf/project/VideoGraph/proposals/vidvrd-dataset/miss30_minscore0p3/VidVRD_test_every1frames",
+    ann_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/datasets/vidvrd-dataset/test",
+    proposal_dir = "/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/tracking_results",
     dim_boxfeature = 1024,
     min_frames_th = 5,
     max_proposal = 150,

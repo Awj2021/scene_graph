@@ -8,7 +8,7 @@ sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from utils_func import vIoU_ts,dura_intersection_ts,unique_with_idx_nd,stack_with_padding
-
+import ipdb
 ## notations: 
 # dim_q == dim_query == dim_pred
 # dim_e == dim_enti
@@ -247,7 +247,7 @@ class BIG_C(nn.Module):
         self.num_pred_cats = config["num_pred_cats"]
         self.num_enti_cats = config["num_enti_cats"]
         self.dim_feat = config["dim_feat"]          # 2048 or 1024 (dimension of each bbox's RoI feature, depend on the detector)
-        self.dim_clsme = config["dim_clsme"]
+        self.dim_clsme = config["dim_clsme"]        # what's the meaning of dim_clsme? dim_clsme=300.
         self.dim_enti = config["dim_enti"]
         self.dim_pred = config["dim_pred"]
         self.dim_att  = config["dim_att"] 
@@ -485,10 +485,10 @@ class BIG_C(nn.Module):
         pred_soid = torch.argmax(att_matrx,dim=-1)  # enti index,  shape == (2,n_querys)
         pred_socatid = cat_ids[pred_soid]  # enti categories, shape == (2,n_querys)
         pred_bias = self.bias_matrix[pred_socatid[0,:],pred_socatid[1,:],:] # shape == (n_querys,n_pred_cat)
-
+        
         sub_clsme = self.EntiNameEmb[pred_socatid[0,:],:]  # shape == (n_querys, 300)
         obj_clsme = self.EntiNameEmb[pred_socatid[1,:],:]  # shape == (n_querys, 300)
-
+        ipdb.set_trace()
         sub_feat = enti_feat[pred_soid[0,:],:]  # shape == (n_querys, dim_enti)
         obj_feat = enti_feat[pred_soid[1,:],:]  # shape == (n_querys, din_enti)
 

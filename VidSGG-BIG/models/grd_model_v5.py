@@ -4,7 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.utils_func import dura_intersection_ts, tIoU,unique_with_idx_nd
+import sys
+sys.path.append('/home/chaos/data/Chaos/activity_graph/code/VidSGG-BIG/utils')
+from utils_func import dura_intersection_ts, tIoU,unique_with_idx_nd
 
 
 def tiou_left_right(lr_1,lr_2):
