@@ -7,6 +7,7 @@
 import argparse
 import cv2
 import os
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 import pprint
 import sys
 import time
@@ -23,11 +24,10 @@ import utils.logging
 
 from datasets_rel import task_evaluation_sg as task_evaluation_sg
 from datasets_rel import task_evaluation_vg_and_vrd as task_evaluation_vg_and_vrd
-
+import ipdb
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
 # thread safe and causes unwanted GPU memory allocations.
 cv2.ocl.setUseOpenCL(False)
-
 
 def parse_args():
     """Parse in command line arguments"""
@@ -97,7 +97,6 @@ if __name__ == '__main__':
     args = parse_args()
     logger.info('Called with args:')
     logger.info(args)
-    
     assert (torch.cuda.device_count() == 1) ^ bool(args.multi_gpu_testing)
 
     if args.cfg_file is not None:
@@ -158,6 +157,17 @@ if __name__ == '__main__':
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/vidvrd/annotations/objects.json')
         cfg.MODEL.NUM_CLASSES = 36
         cfg.MODEL.NUM_PRD_CLASSES = 132  # exclude background
+
+    elif args.dataset == "chaos_train":
+        cfg.TEST.DATASETS = ('chaos_train',)
+        cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
+        cfg.MODEL.NUM_CLASSES = 36
+        cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background
+    elif args.dataset == "chaos":
+        cfg.TEST.DATASETS = ('chaos_val',)
+        cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
+        cfg.MODEL.NUM_CLASSES = 36
+        cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background
     elif args.dataset == "ag_train":
         cfg.TEST.DATASETS = ('ag_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/ag/annotations/objects.json')
@@ -321,10 +331,11 @@ if __name__ == '__main__':
             all_results = pickle.load(f)
         logger.info('Starting evaluation now...')
         #if args.dataset.find('vg') >= 0 or args.dataset.find('vrd') >= 0:# or args.dataset.find('ag') >= 0:
-        if (args.dataset.find('vg') >= 0 or args.dataset.find('vrd') >= 0 or args.dataset.find('ag') >= 0) and\
+        if (args.dataset.find('vg') >= 0 or args.dataset.find('vrd') >= 0 or args.dataset.find('ag') >= 0 or args.dataset.find('chaos') >=0) and\
           not args.eva_map:
             task_evaluation_vg_and_vrd.eval_rel_results(all_results, args.output_dir, args.topk, args.do_val)
         else:
+            ipdb.set_trace()
             task_evaluation_sg.eval_rel_results(all_results, args.output_dir, args.topk, args.do_val, args.do_vis, args.do_special)
     else:
         run_inference(

@@ -45,12 +45,6 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True, do_vis=Fals
     else:
         prd_cls_num = 9
 
-    
-        
-    #if cfg.TEST.DATASETS[0].find('oi') >= 0:
-    #    eval_ap = True
-    #else:
-    #    eval_ap = False
     eval_ap = True
     
     if eval_per_img:

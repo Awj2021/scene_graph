@@ -17,7 +17,7 @@ from core.config import cfg
 
 from datasets_rel.dataset_catalog_rel import ANN_FN2
 from datasets_rel.dataset_catalog_rel import DATASETS
-
+import ipdb
 
 # This function is adapted from Rowan Zellers:
 # https://github.com/rowanz/neural-motifs/blob/master/lib/get_dataset_counts.py
@@ -71,7 +71,7 @@ def get_rel_counts(ds_name, must_overlap=True):
             cfg.MODEL.NUM_CLASSES - 1,  # not include background
             cfg.MODEL.NUM_PRD_CLASSES + 1,  # include background
         ), dtype=np.int64)
-        
+
     if not cfg.MODEL.MULTI_RELATION:
         bg_matrix = np.zeros((
             cfg.MODEL.NUM_CLASSES - 1,  # not include background
@@ -87,13 +87,13 @@ def get_rel_counts(ds_name, must_overlap=True):
             sbj_box = box_utils_rel.y1y2x1x2_to_x1y1x2y2(rel['subject']['bbox'])
             obj_box = box_utils_rel.y1y2x1x2_to_x1y1x2y2(rel['object']['bbox'])
             sbj_lbl = rel['subject']['category']  # not include background
-            obj_lbl = rel['object']['category']  # not include background
+            obj_lbl = rel['object']['category']   # not include background
             prd_lbl = rel['predicate']  # not include background
             if tuple(sbj_box) not in gt_box_to_label:
                 gt_box_to_label[tuple(sbj_box)] = sbj_lbl
             if tuple(obj_box) not in gt_box_to_label:
                 gt_box_to_label[tuple(obj_box)] = obj_lbl
-            
+            # ipdb.set_trace()
             if cfg.MODEL.MULTI_RELATION:
                 fg_matrix[sbj_lbl, obj_lbl, prd_lbl] += 1
             else:

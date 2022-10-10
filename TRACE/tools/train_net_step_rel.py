@@ -15,7 +15,6 @@ import logging
 from collections import defaultdict
 
 import _init_paths  # pylint: disable=unused-import
-import nn as mynn
 import utils_rel.net_rel as net_utils_rel
 import utils.misc as misc_utils
 from core.config import cfg, cfg_from_file, cfg_from_list, assert_and_infer_cfg
@@ -35,6 +34,7 @@ import yaml
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
+import nn as mynn
 import cv2
 
 import gc
@@ -205,16 +205,18 @@ def main(args):
         cfg.MODEL.NUM_CLASSES = 36
         cfg.MODEL.NUM_PRD_CLASSES = 132  # exclude background
     # add the dataset of chaos.
+    ## TODO: 每次修改annotation的predicate,都需要修改这里的数据，最好根据txt的长度自己判断，然后进行填写
+
     elif args.dataset == "chaos":
         cfg.TRAIN.DATASETS = ('chaos_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
         cfg.MODEL.NUM_CLASSES = 36     # including the background. so the classes are ['person', 'background']
-        cfg.MODEL.NUM_PRD_CLASSES = 2  # exclude background 
+        cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background 
     elif args.dataset == "chaos_val":
         cfg.TRAIN.DATASETS = ('chaos_val',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
         cfg.MODEL.NUM_CLASSES = 36
-        cfg.MODEL.NUM_PRD_CLASSES = 2  # exclude background  
+        cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background  
 
     elif args.dataset == "ag":
         cfg.TRAIN.DATASETS = ('ag_train',)

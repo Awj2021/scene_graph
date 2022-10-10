@@ -9,6 +9,7 @@ import copy
 from shutil import copyfile
 from collections import OrderedDict
 import ipdb
+import argparse
 
 def get_name_mapping(video_id, frame_id, cnt):
     mapped_name = '{:012d}'.format(cnt) + '.png'
@@ -69,11 +70,30 @@ def get_box_from_track(tracklet_clip, obj_list, tid, obj_class_list, video_id):
             "bbox": [y1, y2, x1, x2]}
     return ans
 
-def process_vrd_split(pred_class_list, obj_class_list, out_split='train'):
-    anno_dir = 'data/chaos/annotations/'
-    init_path = os.path.join(anno_dir, out_split)
-    video_anno_list = os.listdir(init_path) 
+def filter_files(out_split):
+    """ 
+    Filter some json file that have some error
+    These videos have serious error that cannot be processed. 
+    """
+    file_list_train = [ 'BLOJUKVO.mp4', 'FUHPJSLI.mp4', 'FVCUUHVZ.mp4', 'IAMNKAKV.mp4', 'IBGAGBEH.mp4', 'IRMLVFRT.mp4',
+        'JNBEWHVA.mp4', 'LYZJLWJO.mp4', 'MIVGLUQO.mp4', 'MNGDAGFH.mp4', 'NTSBHCRO.mp4', 'OEFLACUL.mp4', 'OSBUKQFK.mp4',
+        'OSVFHMJX.mp4', 'RHYXNPXM.mp4', 'VRHETGAS.mp4', 'XZEMTRWJ.mp4', 'ZJBBSIGK.mp4', 'ZQIMRYOS.mp4'
+    ]
+    file_list_val = ['AZGKQCZJ.mp4','BQSEQOVM.mp4','DATDLDDI.mp4','LEZNSMQH.mp4',
+        'NEJWHHON.mp4','PVJUWOUG.mp4','UFFQBBPJ.mp4','UUCINGKC.mp4']
     
+    file_list = file_list_train if out_split == 'train' else file_list_val
+
+    files = [out_split + '_' + x.split('.')[0] + '.json' for x in file_list]
+    return files
+
+def process_vrd_split(pred_class_list, obj_class_list, out_split='train', anno_dir = ''):
+    # anno_dir = 'data/chaos/annotations/'
+    filter_file = filter_files(out_split)
+    init_path = os.path.join(anno_dir, out_split)
+    # video_anno_list = os.listdir(init_path)
+
+    video_anno_list = [x for x in os.listdir(init_path) if x not in filter_file]
     pred_class_list = get_class_id(pred_class_list)  # arrage the index of every item.
     obj_class_list = get_class_id(obj_class_list)    
     
@@ -84,6 +104,7 @@ def process_vrd_split(pred_class_list, obj_class_list, out_split='train'):
     new_anns = dict()
     size_dict = dict()
     for video_anno_file in tqdm(video_anno_list):       # loop for every .json file
+        print(video_anno_file)
         # video_pure_id = video_anno_file.split('_')[-1].split('.')[0]
         with open(os.path.join(init_path, video_anno_file), 'r') as f:
             relation_anns = json.load(f)
@@ -101,6 +122,7 @@ def process_vrd_split(pred_class_list, obj_class_list, out_split='train'):
         for rel in rel_list:   # loop for relationship
             s_tid = int(rel['subject_tid'])
             o_tid = int(rel['object_tid'])
+            # ipdb.set_trace()
             pred = pred_class2int(rel['predicate'], pred_class_list)
             st = rel['begin_fid']
             ed = rel['end_fid']
@@ -108,24 +130,34 @@ def process_vrd_split(pred_class_list, obj_class_list, out_split='train'):
                 triplet_info = dict(predicate=pred)
                 cur_frame_tracks_list = tracks_list[t]
                 for tracklet_clip in cur_frame_tracks_list: # for every frame.
-                    if tracklet_clip['tid'] == s_tid:
-                        triplet_info['subject'] = get_box_from_track(tracklet_clip, 
-                                                    obj_list, s_tid, obj_class_list, video_id)
-                    if tracklet_clip['tid'] == o_tid:
-                        triplet_info['object'] = get_box_from_track(tracklet_clip, 
-                                                    obj_list, o_tid, obj_class_list, video_id)
+                    assert type(tracklet_clip) == dict, (
+                        print(f'Checking the format of {tracklet_clip} (Should be dict)')
+                    )
+                    try:
+                        if tracklet_clip['tid'] == s_tid:
+                            triplet_info['subject'] = get_box_from_track(tracklet_clip, 
+                                                        obj_list, s_tid, obj_class_list, video_id)
+                        if tracklet_clip['tid'] == o_tid:
+                            triplet_info['object'] = get_box_from_track(tracklet_clip, 
+                                                        obj_list, o_tid, obj_class_list, video_id)
+                    except: 
+                        print(tracklet_clip)
+                        print(s_tid)
+                        print(cur_frame_tracks_list)
+                        raise ValueError('Something wrong!')
                 if t in sgg:
                     sgg[t].append(triplet_info)
                 else:
                     sgg[t] = [triplet_info, ]
 
         for t, val in sgg.items():
-            mapped_name = get_name_mapping(video_id, t, cnt)
+            mapped_name = get_name_mapping(video_id, t, cnt) # cnt用在编码new_annotations_.json的key中；
+            # print(mapped_name)
             new_anns[mapped_name] = val
             size_dict[mapped_name] = (h, w)
             
             f_frames_path = video_id + '.mp4' + '/' + '{:06d}'.format(t) + '.png' # t is the frame number.
-            name_map[f_frames_path] = cnt
+            name_map[f_frames_path] = cnt   # 按顺序进行编号, mapped_name包含了cnt.
             name_list.append(f_frames_path)
             cnt += 1
     
@@ -152,18 +184,16 @@ def convert_anno(split, vrd_anns, obj_dict, size_dict):
     new_imgs = []
     new_anns = []
     ann_id = 1
-    for f, anns in tqdm(vrd_anns.items()):
+    for f, anns in tqdm(vrd_anns.items()): 
         im_h, im_w = size_dict[f]
         
-        image_id = int(f.split('.')[0])
+        image_id = int(f.split('.')[0])  
         new_imgs.append(dict(file_name=f, height=im_h, width=im_w, id=image_id))
         # used for duplicate checking
         bbox_set = set()
         for ann in anns:
-            print(ann)
             # "area" in COCO is the area of segmentation mask, while here it's the area of bbox
             # also need to fake a 'iscrowd' which is always 0
-            # print(ann)
             s_box = ann['subject']['bbox']
             bbox = box_transform(s_box)
             if not tuple(bbox) in bbox_set:
@@ -172,8 +202,8 @@ def convert_anno(split, vrd_anns, obj_dict, size_dict):
                 cat = ann['subject']['category']
                 new_anns.append(dict(area=area, bbox=bbox, category_id=cat, id=ann_id, image_id=image_id, iscrowd=0))
                 ann_id += 1
-
             o_box = ann['object']['bbox']
+
             bbox = box_transform(o_box)
             if not tuple(bbox) in bbox_set:
                 bbox_set.add(tuple(bbox))
@@ -193,7 +223,13 @@ def convert_anno(split, vrd_anns, obj_dict, size_dict):
         json.dump(new_data, outfile)
     
 if __name__ == '__main__':
-    path = './data/chaos/annotations'
+    parser = argparse.ArgumentParser("Set Data of TRACE", add_help=False)
+    parser.add_argument("--path_anno", default="./data/chaos/annotations", type=str)
+    parser.add_argument("--path_json", default="/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotations", type=str)
+    args = parser.parse_args()
+
+    path = args.path_anno
+    path_json = args.path_json
     obj_txt_path = os.path.join(path, 'object.txt')
     obj_json_path = os.path.join(path, 'objects.json')
     pred_txt_path = os.path.join(path, 'predicate.txt')
@@ -214,9 +250,12 @@ if __name__ == '__main__':
 
     rel_train_new_anno_json_path = os.path.join(path, 'new_annotations_train.json')
     if not os.path.exists(rel_train_new_anno_json_path):
-        process_vrd_split(pred_class_list, obj_class_list, out_split='train')
+        process_vrd_split(pred_class_list, obj_class_list, out_split='train', anno_dir = path_json)
     
-    rel_test_new_anno_json_path = os.path.join(path, 'new_annotations_val.json')
-    if not os.path.exists(rel_test_new_anno_json_path):
-        process_vrd_split(pred_class_list, obj_class_list, out_split='test')
-    
+    rel_val_new_anno_json_path = os.path.join(path, 'new_annotations_val.json')
+    if not os.path.exists(rel_val_new_anno_json_path):
+        process_vrd_split(pred_class_list, obj_class_list, out_split='val', anno_dir = path_json)
+
+    # rel_test_new_anno_json_path = os.path.join(path, 'new_annotations_test.json')
+    # if not os.path.exists(rel_test_new_anno_json_path):
+    #     process_vrd_split(pred_class_list, obj_class_list, out_split='test', anno_dir = path_json) 

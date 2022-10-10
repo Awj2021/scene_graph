@@ -57,7 +57,7 @@ from .dataset_catalog_rel import IM_DIR
 from .dataset_catalog_rel import IM_PREFIX
 
 logger = logging.getLogger(__name__)
-
+import ipdb
 
 class JsonDatasetRel(object):
     """A class representing a COCO json dataset."""
@@ -235,6 +235,12 @@ class JsonDatasetRel(object):
                             contain_frames_pkl['pre_processed_frames_rpn_ret']
                         entry['pre_processed_temporal_roi'] = \
                             contain_frames_pkl['pre_processed_temporal_roi']
+                    elif (len(cfg.TRAIN.DATASETS) > 0 and cfg.TRAIN.DATASETS[0].find('chaos') < 0) or \
+                            (len(cfg.TEST.DATASETS) > 0 and cfg.TEST.DATASETS[0].find('chaos') < 0):
+                        entry['pre_processed_frames_rpn_ret'] = \
+                            contain_frames_pkl['pre_processed_frames_rpn_ret']
+                        entry['pre_processed_temporal_roi'] = \
+                            contain_frames_pkl['pre_processed_temporal_roi']
                     else:
                         entry['pre_processed_frames_rpn_ret'] = contain_frames_pkl
                     #print(contain_frames_pkl['pre_processed_frames_rpn_ret'])
@@ -260,7 +266,7 @@ class JsonDatasetRel(object):
                 #cache_filepath = os.path.join(self.cache_path, self.name + '_rel_gt_roidb_sampled_real_mod5.pkl')
                 cache_filepath = os.path.join(self.cache_path, self.name + '_rel_gt_roidb_sampled_real_mod3_11_15_19_23.pkl')
                 #cache_filepath = os.path.join(self.cache_path, self.name + '_rel_gt_roidb_sampled_real_mod3.pkl')
-            
+            # ipdb.set_trace()
             if os.path.exists(cache_filepath) and not cfg.DEBUG:
                 self.debug_timer.tic()
                 self._add_gt_from_cache(roidb, cache_filepath)
@@ -502,6 +508,7 @@ class JsonDatasetRel(object):
         with open(cache_filepath, 'rb') as fp:
             cached_roidb = pickle.load(fp)
 
+        print(len(roidb), len(cached_roidb))
         assert len(roidb) == len(cached_roidb)
 
         for entry, cached_entry in zip(roidb, cached_roidb):
