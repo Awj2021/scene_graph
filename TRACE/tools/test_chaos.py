@@ -24,16 +24,21 @@ def get_relation_insts(anno_dir, vid, tet, no_traj=False):
     sub_objs = dict()
     for so in anno['subject/objects']:
         sub_objs[so['tid']] = so['category']
+    # trajs used for link all the trajectories, but if we have the dict, it's easier.
     if not no_traj:
-        trajs = []
-        for frame in anno['trajectories']:
+        trajs = {}
+        frame_ids = set(sorted([frame['frame'] for frame in anno['trajectories']])) #
+        for frame in list(frame_ids): 
             bboxes = dict()
-            for bbox in frame:
+            # 先找出所有的帧
+            info = [frame_info for frame_info in anno['trajectories'] if frame_info['frame']==frame]
+            for bbox in info:
+                # ipdb.set_trace()
                 bboxes[bbox['tid']] = (bbox['bbox']['xmin'],
                                     bbox['bbox']['ymin'],
                                     bbox['bbox']['xmax'],
                                     bbox['bbox']['ymax'])
-            trajs.append(bboxes)
+            trajs[frame] = bboxes   # 将每一帧，tid对应的bounding box保存起来
     relation_insts = []
     for anno_inst in anno['relationship_instances']:
         inst = dict()
@@ -43,11 +48,20 @@ def get_relation_insts(anno_dir, vid, tet, no_traj=False):
         inst['subject_tid'] = anno_inst['subject_tid']
         inst['object_tid'] = anno_inst['object_tid']
         inst['duration'] = (anno_inst['begin_fid'], anno_inst['end_fid'])
-        if not no_traj:
-            inst['sub_traj'] = [bboxes[anno_inst['subject_tid']] for bboxes in
-                    trajs[inst['duration'][0]: inst['duration'][1]]]
-            inst['obj_traj'] = [bboxes[anno_inst['object_tid']] for bboxes in
-                    trajs[inst['duration'][0]: inst['duration'][1]]]
+        # ipdb.set_trace()
+        if not no_traj: 
+            # anno_inst['subject_tid']对应的segment的长度
+            # inst: subject & object's trajectories. all the bounding boxes.
+            # ipdb.set_trace()
+            inst['sub_traj'] = [trajs[id][anno_inst['subject_tid']] for id in range(inst['duration'][0], inst['duration'][1])]
+            inst['obj_traj'] = [trajs[id][anno_inst['object_tid']] for id in range(inst['duration'][0], inst['duration'][1])]
+
+            # inst['sub_traj'] = [bboxes[anno_inst['subject_tid']] for bboxes in
+            #         trajs[inst['duration'][0]: inst['duration'][1]]]
+            # inst['obj_traj'] = [bboxes[anno_inst['object_tid']] for bboxes in
+            #         trajs[inst['duration'][0]: inst['duration'][1]]]
+        # 转换bounding boxes..
+
         relation_insts.append(inst)
     return relation_insts
 
@@ -80,7 +94,6 @@ def eval_detection_scores(gt_relations, pred_relations, viou_threshold):
     cum_fp = np.cumsum(fp).astype(np.float32)
     rec = cum_tp / np.maximum(len(gt_relations), np.finfo(np.float32).eps)
     prec = cum_tp / np.maximum(cum_tp + cum_fp, np.finfo(np.float32).eps)
-    ipdb.set_trace()
     return prec, rec, hit_scores
 
 
@@ -124,7 +137,6 @@ def evaluate(groundtruth, prediction, viou_threshold=0.5,
             continue
         tot_gt_relations += len(gt_relations)
         predict_relations = prediction.get(vid, [])
-        ipdb.set_trace()
         # compute average precision and recalls in detection setting
         det_prec, det_rec, det_scores = eval_detection_scores(
                 gt_relations, predict_relations, viou_threshold)
@@ -153,7 +165,6 @@ def evaluate(groundtruth, prediction, viou_threshold=0.5,
         tps = tps[sort_indices]
         cum_tp = np.cumsum(tps).astype(np.float32)
         rec = cum_tp / np.maximum(tot_gt_relations, np.finfo(np.float32).eps)
-        ipdb.set_trace()
         rec_at_n[nre] = rec[-1]
     # calculate mean precision for tagging
     mprec_at_n = dict()
@@ -188,7 +199,7 @@ if __name__ == "__main__":
             action='store_true', 
             help='is_test')
     parser.add_argument('--anno_dir', 
-            default='/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotations',
+            default='/home/chaos/data/Chaos/dataset/annotation/AG_vidvrd_format/annotation',
             type=str, help='The dir of annotation which contains the single json.')
     args = parser.parse_args()
     
@@ -202,18 +213,20 @@ if __name__ == "__main__":
         gt = dict()
         tet = 'train' if args.is_train else 'test'
         # TODO: the dir of videos. Need to change.
-        anno_dir = '/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotations'
-        init_path = os.path.join(anno_dir, tet)
+        # anno_dir = '/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotations'
+        init_path = os.path.join(args.anno_dir, tet)
         video_anno_list = os.listdir(init_path)  
         for i in tqdm(video_anno_list):
             vid = i.split('.')[0]
-            gt[vid] = get_relation_insts(anno_dir, i, tet)
+            gt[vid] = get_relation_insts(args.anno_dir, i, tet)
+            # ipdb.set_trace()
         with open(args.groundtruth, 'w') as fp:
             json.dump(gt, fp)
             fp.close()
 
     print('Loading prediction from {}'.format(args.prediction))
-    with open(args.prediction, 'r') as fp:
+    # TODO: 这里应该先要生成baseline_relation_prediction.json文件
+    with open(args.prediction, 'r') as fp: 
         pred = json.load(fp)
         fp.close()
     print('Number of videos in prediction: {}'.format(len(pred['results'])))

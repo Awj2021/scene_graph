@@ -39,13 +39,19 @@ def box_transform(box):
 
 
 def txt2json(path, txt_path, json_path):
+    # with open(txt_path, 'r') as f:
+    #     s = f.read().split()
+    #     f.close()
+    # because not every predicate has only one word.
     with open(txt_path, 'r') as f:
-        s = f.read().split()
+        s = f.readlines()
+        s = [x.strip() for x in s]
         f.close()
+
     with open(json_path, 'w') as fj:
         fj.write(json.dumps(s))
         fj.close()
-    print(len(s), s)
+    print(f'=== number of predicates: {len(s)} \n', s)
     return s
 
 def get_box_from_track(tracklet_clip, obj_list, tid, obj_class_list, video_id):
@@ -75,25 +81,96 @@ def filter_files(out_split):
     Filter some json file that have some error
     These videos have serious error that cannot be processed. 
     """
-    file_list_train = [ 'BLOJUKVO.mp4', 'FUHPJSLI.mp4', 'FVCUUHVZ.mp4', 'IAMNKAKV.mp4', 'IBGAGBEH.mp4', 'IRMLVFRT.mp4',
-        'JNBEWHVA.mp4', 'LYZJLWJO.mp4', 'MIVGLUQO.mp4', 'MNGDAGFH.mp4', 'NTSBHCRO.mp4', 'OEFLACUL.mp4', 'OSBUKQFK.mp4',
-        'OSVFHMJX.mp4', 'RHYXNPXM.mp4', 'VRHETGAS.mp4', 'XZEMTRWJ.mp4', 'ZJBBSIGK.mp4', 'ZQIMRYOS.mp4'
-    ]
+    file_list_train = ['AZGKQCZJ.json', 'AZGKQCZJ.json']
     file_list_val = ['AZGKQCZJ.mp4','BQSEQOVM.mp4','DATDLDDI.mp4','LEZNSMQH.mp4',
         'NEJWHHON.mp4','PVJUWOUG.mp4','UFFQBBPJ.mp4','UUCINGKC.mp4']
     
     file_list = file_list_train if out_split == 'train' else file_list_val
 
-    files = [out_split + '_' + x.split('.')[0] + '.json' for x in file_list]
+    files = [x.split('.')[0] + '.json' for x in file_list]
     return files
+
+
+def check_data_files(anno_dir = '', out_split='train', check_result = '../check_info.json'):
+    """Before transferring the json file, do some check for quicker process"""
+    # TODO: Check the keywords of every json file.
+    anno_keys = set(['video_id', 'video_id_original', 'frame_count', 
+        'fps', 'height', 'width', 'trajectories',
+        'subject/objects', 'relationship_instances'])
+    # anno_dir = 'data/chaos/annotations/'
+    init_path = os.path.join(anno_dir, out_split)
+
+    check_info = []
+    for file in os.listdir(init_path):
+        with open(os.path.join(init_path, file), 'r') as f:
+            anno_data = json.load(f)
+        if set(list(anno_data.keys())) != anno_keys:
+            if len(list(anno_data.keys())) < len(list(anno_keys)):
+                info = f'Missing keys {anno_keys - set(list(anno_data.keys()))}'
+            else:
+                info = f'Keys difference: {set(list(anno_data.keys())).difference(anno_keys)}'
+            print(info)
+            check_info.append({f'{file}': info})
+    
+        # TODO: Check the length of trajectories with the frame count.len(trajectory) == frame_count.
+        if anno_data['frame_count'] != len(anno_data['trajectories']):
+            info = 'frame_count : {}, length_of_trajectories: {}'.format(anno_data['frame_count'], len(anno_data['trajectories']))
+            check_info.append({f'{file}': f'{info}'})
+        
+        # TODO: check the trajectory that cannot be None.
+        content_trajectory = [x for x in anno_data['trajectories'] if x != []]
+        if len(content_trajectory) == 0:
+            info = f'Trajectory is None'
+            check_info.append({f'{file}': f'{info}'})
+
+        # assert len(content_trajectory) == 0, (
+        #     'Trajectories cannot be None in {}'.format(file))
+
+    with open(check_result, 'w') as f:
+        json.dump(check_info, f)
+
+    # assert len(check_info) == 0, (
+    #     'Please check the annotations!!! at {}'.format(check_result)
+    # )
+
+def modify(json_file):
+    """
+    Args:
+        json_file (str): the dir of json file. e.g. dir/train/
+
+    return:
+        the correct json file.
+    """
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    f.close()
+    traj_new = []
+    for item in data['trajectories']:
+        if type(item) == list:
+            if item != [] and type(item[0]) != dict:
+                traj_new.append(item[0])
+                print(json_file.split('/')[-1])
+            else:
+                traj_new.append(item)
+        elif type(item) == dict:
+            traj_new.append([item])
+        else:
+            raise TypeError(f'Unknow type {type(item)}')
+    assert len(traj_new) == len(data['trajectories']), (
+        print('Different length!'))
+    data['trajectories']=traj_new
+    
+    # with open(json_file, 'w') as f:
+    #     json.dump(data, f)
+
 
 def process_vrd_split(pred_class_list, obj_class_list, out_split='train', anno_dir = ''):
     # anno_dir = 'data/chaos/annotations/'
-    filter_file = filter_files(out_split)
+    # filter_file = filter_files(out_split)
     init_path = os.path.join(anno_dir, out_split)
-    # video_anno_list = os.listdir(init_path)
+    # video_anno_list = [x for x in os.listdir(init_path) if x not in filter_file]
+    video_anno_list = os.listdir(init_path)
 
-    video_anno_list = [x for x in os.listdir(init_path) if x not in filter_file]
     pred_class_list = get_class_id(pred_class_list)  # arrage the index of every item.
     obj_class_list = get_class_id(obj_class_list)    
     
@@ -103,9 +180,15 @@ def process_vrd_split(pred_class_list, obj_class_list, out_split='train', anno_d
     
     new_anns = dict()
     size_dict = dict()
+
+    # print('Start Checking the Annotation!')
+    # for video in tqdm(video_anno_list):
+    #     modify(os.path.join(init_path, video))
+
     for video_anno_file in tqdm(video_anno_list):       # loop for every .json file
-        print(video_anno_file)
+        # print(video_anno_file)
         # video_pure_id = video_anno_file.split('_')[-1].split('.')[0]
+
         with open(os.path.join(init_path, video_anno_file), 'r') as f:
             relation_anns = json.load(f)
             f.close()
@@ -115,36 +198,39 @@ def process_vrd_split(pred_class_list, obj_class_list, out_split='train', anno_d
         w = relation_anns['width']
         h = relation_anns['height']
         obj_list = relation_anns['subject/objects']
-        tracks_list = relation_anns['trajectories']
+        tracks_list = relation_anns['trajectories']  # [[{}, {}, {}]]
         rel_list = relation_anns['relationship_instances']
 
         sgg = OrderedDict()
         for rel in rel_list:   # loop for relationship
             s_tid = int(rel['subject_tid'])
             o_tid = int(rel['object_tid'])
-            # ipdb.set_trace()
             pred = pred_class2int(rel['predicate'], pred_class_list)
             st = rel['begin_fid']
             ed = rel['end_fid']
             for t in range(st, ed):  
+                # ipdb.set_trace()
                 triplet_info = dict(predicate=pred)
-                cur_frame_tracks_list = tracks_list[t]
+                # print(t)
+                # cur_frame_tracks_list = tracks_list[t]  # choose the corresponding frame.
+                
+                # frame == t; then choose together.
+                cur_frame_tracks_list = [x for x in tracks_list if int(x['frame'])==int(t)]
+                
+                assert cur_frame_tracks_list != [], (
+                    f'Please Check the annotation which has no matching frame!!!'
+                )
+                # ipdb.set_trace()
                 for tracklet_clip in cur_frame_tracks_list: # for every frame.
                     assert type(tracklet_clip) == dict, (
-                        print(f'Checking the format of {tracklet_clip} (Should be dict)')
-                    )
-                    try:
-                        if tracklet_clip['tid'] == s_tid:
-                            triplet_info['subject'] = get_box_from_track(tracklet_clip, 
-                                                        obj_list, s_tid, obj_class_list, video_id)
-                        if tracklet_clip['tid'] == o_tid:
-                            triplet_info['object'] = get_box_from_track(tracklet_clip, 
-                                                        obj_list, o_tid, obj_class_list, video_id)
-                    except: 
-                        print(tracklet_clip)
-                        print(s_tid)
-                        print(cur_frame_tracks_list)
-                        raise ValueError('Something wrong!')
+                        print(f'Checking the format of {tracklet_clip} (Should be dict), (Now: {type(tracklet_clip)})')
+                    ) 
+                    if tracklet_clip['tid'] == s_tid:
+                        triplet_info['subject'] = get_box_from_track(tracklet_clip, 
+                                                    obj_list, s_tid, obj_class_list, video_id)
+                    if tracklet_clip['tid'] == o_tid:
+                        triplet_info['object'] = get_box_from_track(tracklet_clip, 
+                                                    obj_list, o_tid, obj_class_list, video_id)
                 if t in sgg:
                     sgg[t].append(triplet_info)
                 else:
@@ -194,6 +280,8 @@ def convert_anno(split, vrd_anns, obj_dict, size_dict):
         for ann in anns:
             # "area" in COCO is the area of segmentation mask, while here it's the area of bbox
             # also need to fake a 'iscrowd' which is always 0
+            # print(ann)
+            
             s_box = ann['subject']['bbox']
             bbox = box_transform(s_box)
             if not tuple(bbox) in bbox_set:
@@ -225,7 +313,7 @@ def convert_anno(split, vrd_anns, obj_dict, size_dict):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Set Data of TRACE", add_help=False)
     parser.add_argument("--path_anno", default="./data/chaos/annotations", type=str)
-    parser.add_argument("--path_json", default="/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotations", type=str)
+    parser.add_argument("--path_json", default="/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotation", type=str)
     args = parser.parse_args()
 
     path = args.path_anno
@@ -247,7 +335,8 @@ if __name__ == '__main__':
         with open(pred_json_path, 'r') as f:
             pred_class_list = json.load(f)
             f.close()
-
+    # TODO: ====   Check the info in advance.
+    check_data_files(anno_dir=path_json, out_split='train', check_result='check_info.json')
     rel_train_new_anno_json_path = os.path.join(path, 'new_annotations_train.json')
     if not os.path.exists(rel_train_new_anno_json_path):
         process_vrd_split(pred_class_list, obj_class_list, out_split='train', anno_dir = path_json)

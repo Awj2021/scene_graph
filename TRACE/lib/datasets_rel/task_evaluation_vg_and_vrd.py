@@ -12,7 +12,7 @@ from six.moves import cPickle as pickle
 import json
 import csv
 from tqdm import tqdm
-
+import ipdb
 from core.config import cfg
 from functools import reduce
 from utils.boxes import bbox_overlaps
@@ -308,7 +308,6 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
                     
                     all_gt_cnt += gt_labels_spo.shape[0]
                     #all_gt_cnt += 1
-                    
                     video_gt_cnt[file_real_name] += gt_labels_spo.shape[0]
                     #video_gt_cnt[file_real_name] += 1
                     

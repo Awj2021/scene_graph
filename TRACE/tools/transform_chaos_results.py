@@ -15,7 +15,7 @@ from tqdm import tqdm
 import argparse
 
 import cv2
-
+import ipdb
 import _init_paths
 
 from core.config import cfg
@@ -340,7 +340,7 @@ def eval_rel_results(args, all_results, output_dir, topk=100, is_gt_traj=False):
     N_list = [3, 7, 11, 14, 15, 19, 23, 27]
     w = [1.0 ,1.0 ,1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     
-    if args.sharp_frame:
+    if args.sharp_frame:  
         full_video_path = './data/chaos/frames'
         if os.path.exists(os.path.join('./data/chaos', 'sharp_key_frame_set.pkl')):
             with open(os.path.join('./data/chaos', 'sharp_key_frame_set.pkl'), 'rb') as f:
@@ -594,7 +594,7 @@ if __name__ == '__main__':
                         help="output_dir.")
     parser.add_argument("--is_gt_traj", action="store_true",
                         help="is_gt_traj.")
-    parser.add_argument("--topk", default=200, type=int,
+    parser.add_argument("--topk", default=50, type=int,
                         help="output_dir.")
     parser.add_argument("--adapt_longtail_st", default=False,
                         help="output_dir.")
@@ -674,10 +674,12 @@ if __name__ == '__main__':
     
         if not os.path.exists(os.path.join(args.output_dir, 'baseline_relation_prediction.json')):
             video_relations = dict()
-            for vid in tqdm(topk_dets.keys()):
+            ipdb.set_trace()
+            for vid in tqdm(topk_dets.keys()):  # 此处为空
                 video_relations[vid] = \
                     greedy_relational_association(obj_class_list, pred_class_list, 
                                         topk_dets[vid], max_traj_num_in_clip=args.topk, is_gt=args.is_gt_traj)
+            ipdb.set_trace()
             with open(os.path.join(args.output_dir, 'baseline_relation_prediction.json'), 'w') as f:
                 output = {
                     'version': 'VERSION 1.0',

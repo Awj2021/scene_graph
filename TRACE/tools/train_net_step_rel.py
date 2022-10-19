@@ -36,7 +36,7 @@ from torch.autograd import Variable
 import torch.nn as nn
 import nn as mynn
 import cv2
-
+import ipdb
 import gc
 
 import inspect
@@ -210,6 +210,7 @@ def main(args):
     elif args.dataset == "chaos":
         cfg.TRAIN.DATASETS = ('chaos_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
+        # TODO: 此处修改为NUM_CLASSES=2 如何？
         cfg.MODEL.NUM_CLASSES = 36     # including the background. so the classes are ['person', 'background']
         cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background 
     elif args.dataset == "chaos_val":
@@ -337,6 +338,7 @@ def main(args):
 
     ### Dataset ###
     timers['roidb'].tic()
+    # ipdb.set_trace()
     roidb, ratio_list, ratio_index = combined_roidb_for_training(
         cfg.TRAIN.DATASETS, cfg.TRAIN.PROPOSAL_FILES)
     timers['roidb'].toc()

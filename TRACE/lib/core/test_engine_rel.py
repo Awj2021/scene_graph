@@ -153,7 +153,7 @@ def test_net_on_dataset(
     logger.info('Total inference time: {:.3f}s'.format(test_timer.average_time))
     
     logger.info('Starting evaluation now...')
-    if dataset_name.find('vg') >= 0 or dataset_name.find('vrd') >= 0 or dataset_name.find('ag') >= 0:
+    if dataset_name.find('vg') >= 0 or dataset_name.find('vrd') >= 0 or dataset_name.find('ag') >= 0 or dataset_name.find('chao') >= 0:
         task_evaluation_vg_and_vrd.eval_rel_results(all_results, output_dir, args.topk, args.do_val)
     else:
         task_evaluation_sg.eval_rel_results(all_results, output_dir, args.topk, args.do_val, args.do_vis, args.do_special)

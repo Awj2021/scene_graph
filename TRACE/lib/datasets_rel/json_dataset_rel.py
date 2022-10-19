@@ -96,14 +96,14 @@ class JsonDatasetRel(object):
             v: k
             for k, v in self.json_category_id_to_contiguous_id.items()
         }
-        self._init_keypoints()
+        self._init_keypoints() # 此处没有keypoints.
 
         assert ANN_FN2 in DATASETS[name] and ANN_FN3 in DATASETS[name]
         with open(DATASETS[name][ANN_FN2]) as f:
-            self.rel_anns = json.load(f)
+            self.rel_anns = json.load(f)          # new_annotations_train.json
         with open(DATASETS[name][ANN_FN3]) as f:
-            prd_categories = json.load(f)
-        self.obj_classes = self.classes[1:]  # excludes background for now
+            prd_categories = json.load(f)         # predicates.json
+        self.obj_classes = self.classes[1:]       # excludes background for now
         self.num_obj_classes = len(self.obj_classes)
         # self.prd_classes = ['__background__'] + prd_categories
         self.prd_classes = prd_categories  # excludes background for now
@@ -119,7 +119,7 @@ class JsonDatasetRel(object):
         
         
     @property
-    def cache_path(self):
+    def cache_path(self):  # if not exists, then create it.
         cache_path = os.path.abspath(os.path.join(cfg.DATA_DIR, 'cache'))
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
@@ -137,7 +137,7 @@ class JsonDatasetRel(object):
                 'is_crowd', 'box_to_gt_ind_map',
                 'sbj_gt_boxes', 'sbj_gt_classes', 'obj_gt_boxes', 'obj_gt_classes', 'prd_gt_classes',
                 'sbj_gt_overlaps', 'obj_gt_overlaps', 'prd_gt_overlaps', 'pair_to_gt_ind_map']
-        if self.keypoints is not None:
+        if self.keypoints is not None:  # self.keypoints == None.
             keys += ['gt_keypoints', 'has_visible_keypoints']
         
         #keys += ['pre_processed_frames_rpn_ret', 'pre_processed_temporal_roi']
@@ -168,7 +168,7 @@ class JsonDatasetRel(object):
             roidb = copy.deepcopy(self.COCO.loadImgs(image_ids))
         
         
-        f_rois_file_name = os.path.abspath(cfg.FRAME_PRE_PROCESSING_PATH)
+        f_rois_file_name = os.path.abspath(cfg.FRAME_PRE_PROCESSING_PATH) # all_box: ''
         if len(cfg.TRAIN.DATASETS) > 0 and len(cfg.TEST.DATASETS) <= 0:
             if cfg.TRAIN.DATASETS[0].find('train') >= 0:
                 f_rois_file_name = os.path.join(f_rois_file_name, 'train')
@@ -189,6 +189,7 @@ class JsonDatasetRel(object):
         SEG_STEP = 15
         
         new_roidb = []
+        # roidb: [{'file_name': '000000000001.png', 'height': 180, 'width': 320, 'id': 1}, {'file_name': '000000000002.png', 'height': 180, 'width': 320, 'id': 2}, ...]
         for entry in roidb:
             # In OpenImages_v4, the detection-annotated images are more than relationship
             # annotated images, hence the need to check
@@ -214,7 +215,7 @@ class JsonDatasetRel(object):
                 #if cfg.ENABLE_SAMPLE_TRAIN and cur_frame_id < 8 and cur_frame_id > 1: continue
                 #if cfg.ENABLE_SAMPLE_TRAIN and (cur_frame_id % 4 != 0): continue
                 #if cfg.ENABLE_SAMPLE_TRAIN and (cur_frame_id % 5 != 0 or cur_frame_id == 0): continue
-                if cfg.ENABLE_SAMPLE_TRAIN: 
+                if cfg.ENABLE_SAMPLE_TRAIN:  # 进行抽帧
                     flg = False
                     for N in N_list:
                         if (cur_frame_id - N) % SEG_STEP == 0 and cur_frame_id >= N and cur_frame_id != 0:
@@ -248,13 +249,13 @@ class JsonDatasetRel(object):
                 new_roidb.append(entry)
                 entry['file_name'] = tmp_file_name
             
-        roidb = new_roidb
+        roidb = new_roidb # 此处只有大小，其中的内容基本上都是空的
         
         if gt:
             # Include ground-truth object annotations
             cache_filepath = os.path.join(self.cache_path, self.name + '_rel_gt_roidb.pkl')
             
-            if not cfg.ENABLE_SAMPLE_TRAIN:
+            if not cfg.ENABLE_SAMPLE_TRAIN: # False.
                 cache_filepath = os.path.join(self.cache_path, self.name + '_rel_gt_roidb.pkl')
             else:
                 ####cache_filepath = os.path.join(self.cache_path, self.name + '_rel_gt_roidb_sampled_up32.pkl')
@@ -585,7 +586,7 @@ class JsonDatasetRel(object):
         self.num_keypoints = 0
         # Thus far only the 'person' category has keypoints
         if 'person' in self.category_to_id_map:
-            cat_info = self.COCO.loadCats([self.category_to_id_map['person']])
+            cat_info = self.COCO.loadCats([self.category_to_id_map['person']]) # [{'id': 30, 'name': 'person', 'supercategory': 'person'}]
         else:
             return
 
