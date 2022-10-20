@@ -8,6 +8,7 @@ import numpy as np
 import pickle
 import os
 from fasterRCNN.lib.model.utils.blob import prep_im_for_blob, im_list_to_blob
+import ipdb
 
 class AG(Dataset):
 
@@ -92,9 +93,9 @@ class AG(Dataset):
                     if j['visible']:
                         frame_valid = True
                 if frame_valid:
-                    video_name, frame_num = i.split('/')
+                    video_name, frame_num = i.split('/') # i, e.g. '001YG.mp4/000089.png'
                     if video_name in video_dict.keys():
-                        video_dict[video_name].append(i)
+                        video_dict[video_name].append(i) # e.g., '001YG.mp4':'001YG.mp4/000089.png'
                     else:
                         video_dict[video_name] = [i]
 
@@ -111,10 +112,10 @@ class AG(Dataset):
         filter_nonperson_box_frame = True (default): according to the stanford method, remove the frames without person box both for training and testing
         filter_nonperson_box_frame = False: still use the frames without person box, FasterRCNN may find the person
         '''
-        for i in video_dict.keys():
+        for i in video_dict.keys(): # i, '001YG.mp4'
             video = []
             gt_annotation_video = []
-            for j in video_dict[i]:
+            for j in video_dict[i]: # j: '001YG.mp4/000089.png'
                 if filter_nonperson_box_frame:
                     if person_bbox[j]['bbox'].shape[0] == 0:
                         self.non_gt_human_nums += 1
@@ -123,10 +124,10 @@ class AG(Dataset):
                         video.append(j)
                         self.valid_nums += 1
 
-
+                # TODO: Add subjects and loop to add the subject-object pairs.
                 gt_annotation_frame = [{'person_bbox': person_bbox[j]['bbox']}]
                 # each frames's objects and human
-                for k in object_bbox[j]:
+                for k in object_bbox[j]: # 将Person对应的objects加入；
                     if k['visible']:
                         assert k['bbox'] != None, 'warning! The object is visible without bbox'
                         k['class'] = self.object_classes.index(k['class'])
@@ -134,7 +135,7 @@ class AG(Dataset):
                         k['attention_relationship'] = torch.tensor([self.attention_relationships.index(r) for r in k['attention_relationship']], dtype=torch.long)
                         k['spatial_relationship'] = torch.tensor([self.spatial_relationships.index(r) for r in k['spatial_relationship']], dtype=torch.long)
                         k['contacting_relationship'] = torch.tensor([self.contacting_relationships.index(r) for r in k['contacting_relationship']], dtype=torch.long)
-                        gt_annotation_frame.append(k)
+                        gt_annotation_frame.append(k) 
                 gt_annotation_video.append(gt_annotation_frame)
 
             if len(video) > 2:
@@ -179,7 +180,6 @@ class AG(Dataset):
 
         gt_boxes = torch.zeros([img_tensor.shape[0], 1, 5])
         num_boxes = torch.zeros([img_tensor.shape[0]], dtype=torch.int64)
-
         return img_tensor, im_info, gt_boxes, num_boxes, index
 
     def __len__(self):

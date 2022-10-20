@@ -100,7 +100,7 @@ for epoch in range(conf.nepoch):
         im_info = copy.deepcopy(data[1].cuda())
         gt_boxes = copy.deepcopy(data[2].cuda())
         num_boxes = copy.deepcopy(data[3].cuda())
-        gt_annotation = AG_dataset_train.gt_annotations[data[4]]
+        gt_annotation = AG_dataset_train.gt_annotations[data[4]]  # here to modify.
 
         # prevent gradients to FasterRCNN
         with torch.no_grad():
