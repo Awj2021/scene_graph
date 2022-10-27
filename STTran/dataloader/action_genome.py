@@ -86,7 +86,7 @@ class AG(Dataset):
 
         # collect valid frames
         video_dict = {}
-        for i in person_bbox.keys():
+        for i in person_bbox.keys(): # 001YG.mp4/000089.png
             if object_bbox[i][0]['metadata']['set'] == mode: #train or testing?
                 frame_valid = False
                 for j in object_bbox[i]: # the frame is valid if there is visible bbox
@@ -98,7 +98,7 @@ class AG(Dataset):
                         video_dict[video_name].append(i) # e.g., '001YG.mp4':'001YG.mp4/000089.png'
                     else:
                         video_dict[video_name] = [i]
-
+        # video_dict[video_name] = ['001YG.mp4/000089.png', '001YG.mp4/000100.png']
         self.video_list = []
         self.video_size = [] # (w,h)
         self.gt_annotations = []
@@ -112,6 +112,7 @@ class AG(Dataset):
         filter_nonperson_box_frame = True (default): according to the stanford method, remove the frames without person box both for training and testing
         filter_nonperson_box_frame = False: still use the frames without person box, FasterRCNN may find the person
         '''
+        # 基本上对每一个人，都进行了相应的数据匹配。
         for i in video_dict.keys(): # i, '001YG.mp4'
             video = []
             gt_annotation_video = []
@@ -121,27 +122,27 @@ class AG(Dataset):
                         self.non_gt_human_nums += 1
                         continue
                     else:
-                        video.append(j)
+                        video.append(j) # 加载确定有人的视频。 j: '001YG.mp4/000089.png'
                         self.valid_nums += 1
 
                 # TODO: Add subjects and loop to add the subject-object pairs.
                 gt_annotation_frame = [{'person_bbox': person_bbox[j]['bbox']}]
                 # each frames's objects and human
-                for k in object_bbox[j]: # 将Person对应的objects加入；
+                for k in object_bbox[j]: # 将Person对应的objects加入；k为一帧中，对应的一个object.
                     if k['visible']:
                         assert k['bbox'] != None, 'warning! The object is visible without bbox'
-                        k['class'] = self.object_classes.index(k['class'])
+                        k['class'] = self.object_classes.index(k['class'])  # 类型的编号
                         k['bbox'] = np.array([k['bbox'][0], k['bbox'][1], k['bbox'][0]+k['bbox'][2], k['bbox'][1]+k['bbox'][3]]) # from xywh to xyxy
                         k['attention_relationship'] = torch.tensor([self.attention_relationships.index(r) for r in k['attention_relationship']], dtype=torch.long)
-                        k['spatial_relationship'] = torch.tensor([self.spatial_relationships.index(r) for r in k['spatial_relationship']], dtype=torch.long)
-                        k['contacting_relationship'] = torch.tensor([self.contacting_relationships.index(r) for r in k['contacting_relationship']], dtype=torch.long)
+                        k['spatial_relationship'] = torch.tensor([self.spatial_relationships.index(r) for r in k['spatial_relationship']], dtype=torch.long)  
+                        k['contacting_relationship'] = torch.tensor([self.contacting_relationships.index(r) for r in k['contacting_relationship']], dtype=torch.long) # 关系的编号
                         gt_annotation_frame.append(k) 
-                gt_annotation_video.append(gt_annotation_frame)
+                gt_annotation_video.append(gt_annotation_frame) # [{'person_bbox': person_bbox[j]['bbox']}, object:bbox, classes, relation]
 
-            if len(video) > 2:
-                self.video_list.append(video)
-                self.video_size.append(person_bbox[j]['bbox_size'])
-                self.gt_annotations.append(gt_annotation_video)
+            if len(video) > 2: # 如果每个视频中有多个帧
+                self.video_list.append(video)                       #  '001YG.mp4/000089.png'
+                self.video_size.append(person_bbox[j]['bbox_size']) # 每个视频的大小
+                self.gt_annotations.append(gt_annotation_video)     # 添加
             elif len(video) == 1:
                 self.one_frame_video += 1
             else:
@@ -149,7 +150,7 @@ class AG(Dataset):
 
         print('x'*60)
         if filter_nonperson_box_frame:
-            print('There are {} videos and {} valid frames'.format(len(self.video_list), self.valid_nums))
+            # print('There are {} videos and {} valid frames'.format(len(self. ), self.valid_nums))
             print('{} videos are invalid (no person), remove them'.format(self.non_person_video))
             print('{} videos are invalid (only one frame), remove them'.format(self.one_frame_video))
             print('{} frames have no human bbox in GT, remove them!'.format(self.non_gt_human_nums))
@@ -161,7 +162,7 @@ class AG(Dataset):
 
     def __getitem__(self, index):
 
-        frame_names = self.video_list[index]
+        frame_names = self.video_list[index]    # ['001YG.mp4/000089.png', '001YG.mp4/000089.png', '001YG.mp4/000089.png']
         processed_ims = []
         im_scales = []
 

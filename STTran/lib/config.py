@@ -32,9 +32,12 @@ class Config(object):
         """
         parser = ArgumentParser(description='training code')
         parser.add_argument('-mode', dest='mode', help='predcls/sgcls/sgdet', default='predcls', type=str)
-        parser.add_argument('-save_path', default='data/', type=str)
-        parser.add_argument('-model_path', default=None, type=str)
-        parser.add_argument('-data_path', default='/home/aiwenjie/dataset/ag/', type=str)
+        parser.add_argument('--annt_path', default='/home/aiwenjie/dataset/chaos/annotations',type=str, help='Dir of annotations')
+        parser.add_argument('--frames_path', default='/home/aiwenjie/dataset/chaos/frames', type=str, help='The dir of extracted frames')
+        parser.add_argument('-save_path', default='/home/aiwenjie/code/STTran/data/checkpoints', type=str)
+        parser.add_argument('-model_path', default='/home/aiwenjie/code/STTran/data/checkpoints', type=str)
+        parser.add_argument('-data_path', default='/home/aiwenjie/dataset/chaos/', type=str)
+        
         parser.add_argument('-datasize', dest='datasize', help='mini dataset or whole', default='large', type=str)
         parser.add_argument('-ckpt', dest='ckpt', help='checkpoint', default=None, type=str)
         parser.add_argument('-optimizer', help='adamw/adam/sgd', default='adamw', type=str)

@@ -2,7 +2,7 @@ import numpy as np
 from lib.fpn.box_utils import bbox_overlaps
 import cv2
 
-
+# TODO: 因为这里输入的是gt_annotations, 因此需要修改
 def assign_relations(prediction, gt_annotations, assign_IOU_threshold):
     '''
     :param prediction(list): results from FasterRCNN, each element is a dictionary including the predicted boxes,
@@ -20,12 +20,12 @@ def assign_relations(prediction, gt_annotations, assign_IOU_threshold):
     SUPPLY_RELATIONS = []
 
     assigned_labels = np.zeros(FINAL_LABELS.shape[0])
-
-    for i, j in enumerate(gt_annotations):
+    # TODO: gt_annotations is gt_annotation_video. Loop for every frame. 这里的逻辑有点乱。
+    for i, j in enumerate(gt_annotations): # j为每一帧的数据
 
         gt_boxes = np.zeros([len(j), 4])
         gt_labels = np.zeros(len(j))
-        gt_boxes[0] = j[0]['person_bbox']
+        gt_boxes[0] = j[0]['person_bbox'] # Subject的Bounding Box.
         gt_labels[0] = 1
         for m, n in enumerate(j[1:]):
             gt_boxes[m+1,:] = n['bbox']
@@ -43,6 +43,8 @@ def assign_relations(prediction, gt_annotations, assign_IOU_threshold):
         gt_relations = []
         supply_relations = []
         candidates = []
+        # TODO: 在这里构建关系的时候，如何构建的？讲道理，我们的数据集包含两个字段：subject/object. 因此只需要判断是
+        # subject 还是 objct, 但是两个后面添加的逻辑都是一样的，因为都是person.
         for m, n in enumerate(gt_annotations[i]):
             if m == 0:
                 # 1 is the person index, np.where find out the pred_boxes and check which one corresponds to gt_label

@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 from torch import optim
@@ -5,16 +6,16 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 np.set_printoptions(precision=3)
 import time
-import os
 import pandas as pd
 import copy
 
-from dataloader.action_genome import AG, cuda_collate_fn
+from dataloader.chaos import CHAOS, cuda_collate_fn_chaos
 from lib.object_detector import detector
 from lib.config import Config
 from lib.evaluation_recall import BasicSceneGraphEvaluator
 from lib.AdamW import AdamW
 from lib.sttran import STTran
+import ipdb
 
 """------------------------------------some settings----------------------------------------"""
 conf = Config()
@@ -25,46 +26,49 @@ conf = Config()
 print('The CKPT saved here:', conf.save_path)
 if not os.path.exists(conf.save_path):
     os.mkdir(conf.save_path)
+
 print('spatial encoder layer num: {} / temporal decoder layer num: {}'.format(conf.enc_layer, conf.dec_layer))
 for i in conf.args:
     print(i,':', conf.args[i])
 """-----------------------------------------------------------------------------------------"""
 
-AG_dataset_train = AG(mode="train", datasize=conf.datasize, data_path=conf.data_path, filter_nonperson_box_frame=True,
-                      filter_small_box=False if conf.mode == 'predcls' else True)
-dataloader_train = torch.utils.data.DataLoader(AG_dataset_train, shuffle=True, num_workers=4,
-                                               collate_fn=cuda_collate_fn, pin_memory=False)
-AG_dataset_test = AG(mode="test", datasize=conf.datasize, data_path=conf.data_path, filter_nonperson_box_frame=True,
-                     filter_small_box=False if conf.mode == 'predcls' else True)
-dataloader_test = torch.utils.data.DataLoader(AG_dataset_test, shuffle=False, num_workers=4,
-                                              collate_fn=cuda_collate_fn, pin_memory=False)
+# AG_dataset_train = AG(mode="train", datasize=conf.datasize, data_path=conf.data_path, filter_nonperson_box_frame=True,
+#                       filter_small_box=False if conf.mode == 'predcls' else True)
+# datasize, frames_path=None, annt_path=None, filter_nonperson_box_frame=True, filter_small_box=False
+CH_dataset_train = CHAOS(out_split='train', datasize=conf.datasize, frames_path=conf.frames_path, annt_path=conf.annt_path)
+
+dataloader_train = torch.utils.data.DataLoader(CH_dataset_train, shuffle=True, num_workers=4,
+                                               collate_fn=cuda_collate_fn_chaos, pin_memory=False)
+
+CH_dataset_test = CHAOS(out_split='val', datasize=conf.datasize, frames_path=conf.frames_path, annt_path=conf.annt_path)
+
+dataloader_test = torch.utils.data.DataLoader(CH_dataset_test, shuffle=False, num_workers=4,
+                                              collate_fn=cuda_collate_fn_chaos, pin_memory=False)
+
 ### try to solve the error: RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED. But the speed is appearantly slow.
 torch.backends.cudnn.enabled=conf.cudnn
 
-# gpu_device = torch.device("cuda:{}".format(conf.gpu))
-## if there are multi-GPU, could use multi-GPU for training, evaluation.
 gpu_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # freeze the detection backbone
-object_detector = detector(train=True, object_classes=AG_dataset_train.object_classes, use_SUPPLY=True, mode=conf.mode).to(device=gpu_device)
+# TODO: 只有当输入的是sgdet的时候，需要修改关于FastRCNN的部分；
+object_detector = detector(train=True, object_classes=CH_dataset_train.object_classes, use_SUPPLY=True, mode=conf.mode).to(device=gpu_device)
 object_detector.eval()
 
 model = STTran(mode=conf.mode,
-               attention_class_num=len(AG_dataset_train.attention_relationships),
-               spatial_class_num=len(AG_dataset_train.spatial_relationships),
-               contact_class_num=len(AG_dataset_train.contacting_relationships),
-               obj_classes=AG_dataset_train.object_classes,
-               enc_layer_num=conf.enc_layer,
-               dec_layer_num=conf.dec_layer).to(device=gpu_device)
+                # attention_class_num = len(CH_dataset_train.attention_relationships),
+                contact_class_num=len(CH_dataset_train.contacting_relationships),
+                obj_classes=CH_dataset_train.object_classes,
+                enc_layer_num=conf.enc_layer,
+                dec_layer_num=conf.dec_layer).to(device=gpu_device)
 
-evaluator =BasicSceneGraphEvaluator(mode=conf.mode,
-                                    AG_object_classes=AG_dataset_train.object_classes,
-                                    AG_all_predicates=AG_dataset_train.relationship_classes,
-                                    AG_attention_predicates=AG_dataset_train.attention_relationships,
-                                    AG_spatial_predicates=AG_dataset_train.spatial_relationships,
-                                    AG_contacting_predicates=AG_dataset_train.contacting_relationships,
-                                    iou_threshold=0.5,
-                                    constraint='with')
+# evaluator =BasicSceneGraphEvaluator(mode=conf.mode,
+#                                     AG_object_classes=CH_dataset_train.object_classes,
+#                                     AG_all_predicates=CH_dataset_train.relationship_classes,
+#                                     AG_attention_predicates=CH_dataset_train.attention_relationships,
+#                                     AG_contacting_predicates=CH_dataset_train.contacting_relationships,
+#                                     iou_threshold=0.5,
+#                                     constraint='with')
 
 # loss function, default Multi-label margin loss
 if conf.bce_loss:
@@ -100,47 +104,48 @@ for epoch in range(conf.nepoch):
         im_info = copy.deepcopy(data[1].cuda())
         gt_boxes = copy.deepcopy(data[2].cuda())
         num_boxes = copy.deepcopy(data[3].cuda())
-        gt_annotation = AG_dataset_train.gt_annotations[data[4]]  # here to modify.
-
+        gt_annotation = CH_dataset_train.gt_annotation_videos[data[4]]  # 一个视频的所有帧的信息，是一个list结构。
         # prevent gradients to FasterRCNN
         with torch.no_grad():
+            # TODO: 注意传入的数据是什么内容。gt_annotation is gt_annotation_video.
             entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation ,im_all=None)
 
         pred = model(entry)
 
-        attention_distribution = pred["attention_distribution"]
-        spatial_distribution = pred["spatial_distribution"]
+        # attention_distribution = pred["attention_distribution"]
+        # spatial_distribution = pred["spatial_distribution"]
         contact_distribution = pred["contacting_distribution"]
 
-        attention_label = torch.tensor(pred["attention_gt"], dtype=torch.long).to(device=attention_distribution.device).squeeze()
+        # attention_label = torch.tensor(pred["attention_gt"], dtype=torch.long).to(device=attention_distribution.device).squeeze()
         if not conf.bce_loss:
             # multi-label margin loss or adaptive loss
-            spatial_label = -torch.ones([len(pred["spatial_gt"]), 6], dtype=torch.long).to(device=attention_distribution.device)
-            contact_label = -torch.ones([len(pred["contacting_gt"]), 17], dtype=torch.long).to(device=attention_distribution.device)
-            for i in range(len(pred["spatial_gt"])):
-                spatial_label[i, : len(pred["spatial_gt"][i])] = torch.tensor(pred["spatial_gt"][i])
-                contact_label[i, : len(pred["contacting_gt"][i])] = torch.tensor(pred["contacting_gt"][i])
+            # spatial_label = -torch.ones([len(pred["spatial_gt"]), 6], dtype=torch.long).to(device=attention_distribution.device)
+            contact_label = -torch.ones([len(pred["contacting_gt"]), 20], dtype=torch.long).to(device=contact_distribution.device)
+            # for i in range(len(pred["spatial_gt"])):
+            #     # spatial_label[i, : len(pred["spatial_gt"][i])] = torch.tensor(pred["spatial_gt"][i])
+            #     contact_label[i, : len(pred["contacting_gt"][i])] = torch.tensor(pred["contacting_gt"][i])
 
         else:
             # bce loss
-            spatial_label = torch.zeros([len(pred["spatial_gt"]), 6], dtype=torch.float32).to(device=attention_distribution.device)
-            contact_label = torch.zeros([len(pred["contacting_gt"]), 17], dtype=torch.float32).to(device=attention_distribution.device)
-            for i in range(len(pred["spatial_gt"])):
-                spatial_label[i, pred["spatial_gt"][i]] = 1
-                contact_label[i, pred["contacting_gt"][i]] = 1
+            # spatial_label = torch.zeros([len(pred["spatial_gt"]), 6], dtype=torch.float32).to(device=attention_distribution.device)
+            contact_label = torch.zeros([len(pred["contacting_gt"]), 21], dtype=torch.float32).to(device=contact_distribution.device)
+            # for i in range(len(pred["spatial_gt"])):
+            #     # spatial_label[i, pred["spatial_gt"][i]] = 1
+            #     contact_label[i, pred["contacting_gt"][i]] = 1
 
         losses = {}
         if conf.mode == 'sgcls' or conf.mode == 'sgdet':
             losses['object_loss'] = ce_loss(pred['distribution'], pred['labels'])
 
-        losses["attention_relation_loss"] = ce_loss(attention_distribution, attention_label)
+        # losses["attention_relation_loss"] = ce_loss(attention_distribution, attention_label)
         if not conf.bce_loss:
-            losses["spatial_relation_loss"] = mlm_loss(spatial_distribution, spatial_label)
+            # losses["spatial_relation_loss"] = mlm_loss(spatial_distribution, spatial_label)
             losses["contact_relation_loss"] = mlm_loss(contact_distribution, contact_label)
 
         else:
-            losses["spatial_relation_loss"] = bce_loss(spatial_distribution, spatial_label)
-            losses["contact_relation_loss"] = bce_loss(contact_distribution, contact_label)
+            # losses["spatial_relation_loss"] = bce_loss(spatial_distribution, spatial_label)
+            # ipdb.set_trace()
+            losses["contact_relation_loss"] = bce_loss(contact_distribution, contact_label)  # TODO: 两个维度不匹配
 
         optimizer.zero_grad()
         loss = sum(losses.values())
@@ -173,7 +178,7 @@ for epoch in range(conf.nepoch):
             im_info = copy.deepcopy(data[1].cuda())
             gt_boxes = copy.deepcopy(data[2].cuda())
             num_boxes = copy.deepcopy(data[3].cuda())
-            gt_annotation = AG_dataset_test.gt_annotations[data[4]]
+            gt_annotation = CH_dataset_test.gt_annotations[data[4]]
 
             entry = object_detector(im_data, im_info, gt_boxes, num_boxes, gt_annotation, im_all=None)
             pred = model(entry)

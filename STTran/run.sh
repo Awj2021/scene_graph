@@ -12,7 +12,7 @@ fi
 find ./ -name *.pyc -exec rm -rf {} \;
 # TODO: Motify the $DATAPATH.
 # For PredCLS:
-CUDA_VISIBLE_DEVICES=2,3 CUDA_LAUNCH_BLOCKING=1 python train.py -mode predcls -datasize mini -data_path /home/aiwenjie/dataset/ag/ --cudnn True
+CUDA_VISIBLE_DEVICES=1 CUDA_LAUNCH_BLOCKING=1 python train.py -mode predcls -datasize mini --cudnn True -bce_loss
 # For SGCLS:
 # python train.py -mode sgcls -datasize large -data_path $DATAPATH 
 # For SGDET:

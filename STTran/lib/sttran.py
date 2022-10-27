@@ -47,11 +47,13 @@ class ObjectClassifier(nn.Module):
                                          nn.Linear(1024, len(self.classes)))
 
     def clean_class(self, entry, b, class_idx):
+        # TODO: 修改这里，主要是label. 全部都是person.
+        # "b"是什么东西
         final_boxes = []
         final_dists = []
         final_feats = []
         final_labels = []
-        for i in range(b):
+        for i in range(b): 
             scores = entry['distribution'][entry['boxes'][:, 0] == i]
             pred_boxes = entry['boxes'][entry['boxes'][:, 0] == i]
             feats = entry['features'][entry['boxes'][:, 0] == i]
@@ -156,7 +158,7 @@ class ObjectClassifier(nn.Module):
                 entry['union_box'] = union_boxes
                 entry['spatial_masks'] = spatial_masks
             return entry
-        else:
+        else: # Detection.
             if self.training:
                 obj_embed = entry['distribution'] @ self.obj_embed.weight
                 pos_embed = self.pos_embed(center_size(entry['boxes'][:, 1:]))
@@ -174,7 +176,7 @@ class ObjectClassifier(nn.Module):
                 pos_embed = self.pos_embed(center_size(entry['boxes'][:, 1:]))
                 obj_features = torch.cat((entry['features'], obj_embed, pos_embed), 1) #use the result from FasterRCNN directly
 
-                box_idx = entry['boxes'][:, 0].long()
+                box_idx = entry['boxes'][:, 0].long()  # all subjects.
                 b = int(box_idx[-1] + 1)
 
                 entry = self.clean_class(entry, b, 5)
@@ -262,8 +264,7 @@ class ObjectClassifier(nn.Module):
 
 class STTran(nn.Module):
 
-    def __init__(self, mode='sgdet',
-                 attention_class_num=None, spatial_class_num=None, contact_class_num=None, obj_classes=None, rel_classes=None,
+    def __init__(self, mode='sgdet', contact_class_num=None, obj_classes=None, rel_classes=None,
                  enc_layer_num=None, dec_layer_num=None):
 
         """
@@ -274,8 +275,7 @@ class STTran(nn.Module):
         super(STTran, self).__init__()
         self.obj_classes = obj_classes
         self.rel_classes = rel_classes
-        self.attention_class_num = attention_class_num
-        self.spatial_class_num = spatial_class_num
+        # self.attention_class_num = attention_class_num
         self.contact_class_num = contact_class_num
         assert mode in ('sgdet', 'sgcls', 'predcls')
         self.mode = mode
@@ -297,6 +297,7 @@ class STTran(nn.Module):
         self.obj_fc = nn.Linear(2048, 512)
         self.vr_fc = nn.Linear(256*7*7, 512)
 
+        # TODO: 这里修改为args.的形式
         embed_vecs = obj_edge_vectors(obj_classes, wv_type='glove.6B', wv_dir='/home/aiwenjie/code/STTran/data', wv_dim=200)
         self.obj_embed = nn.Embedding(len(obj_classes), 200)
         self.obj_embed.weight.data = embed_vecs.clone()
@@ -306,9 +307,8 @@ class STTran(nn.Module):
 
         self.glocal_transformer = transformer(enc_layer_num=enc_layer_num, dec_layer_num=dec_layer_num, embed_dim=1936, nhead=8,
                                               dim_feedforward=2048, dropout=0.1, mode='latter')
-
-        self.a_rel_compress = nn.Linear(1936, self.attention_class_num)
-        self.s_rel_compress = nn.Linear(1936, self.spatial_class_num)
+        # 主要有两个头，中间的特征是一样的
+        # self.a_rel_compress = nn.Linear(1936, self.attention_class_num)
         self.c_rel_compress = nn.Linear(1936, self.contact_class_num)
 
     def forward(self, entry):
@@ -320,6 +320,7 @@ class STTran(nn.Module):
         subj_rep = self.subj_fc(subj_rep)
         obj_rep = entry['features'][entry['pair_idx'][:, 1]]
         obj_rep = self.obj_fc(obj_rep)
+        
         vr = self.union_func1(entry['union_feat'])+self.conv(entry['spatial_masks'])
         vr = self.vr_fc(vr.view(-1,256*7*7))
         x_visual = torch.cat((subj_rep, obj_rep, vr), 1)
@@ -335,11 +336,9 @@ class STTran(nn.Module):
         # Spatial-Temporal Transformer
         global_output, global_attention_weights, local_attention_weights = self.glocal_transformer(features=rel_features, im_idx=entry['im_idx'])
 
-        entry["attention_distribution"] = self.a_rel_compress(global_output)
-        entry["spatial_distribution"] = self.s_rel_compress(global_output)
+        # entry["attention_distribution"] = self.a_rel_compress(global_output)
         entry["contacting_distribution"] = self.c_rel_compress(global_output)
 
-        entry["spatial_distribution"] = torch.sigmoid(entry["spatial_distribution"])
         entry["contacting_distribution"] = torch.sigmoid(entry["contacting_distribution"])
 
         return entry

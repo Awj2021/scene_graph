@@ -1,16 +1,20 @@
+import os
+from sunau import Au_read
+os.environ['CUDA_VISIBLE_DIVICES']='0,1'
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import copy
 import cv2
-import os
+
 
 from lib.funcs import assign_relations
 from lib.draw_rectangles.draw_rectangles import draw_union_boxes
 from fasterRCNN.lib.model.faster_rcnn.resnet import resnet
 from fasterRCNN.lib.model.rpn.bbox_transform import bbox_transform_inv, clip_boxes
 from fasterRCNN.lib.model.roi_layers import nms
+import ipdb
 
 class detector(nn.Module):
 
@@ -23,6 +27,7 @@ class detector(nn.Module):
         self.use_SUPPLY = use_SUPPLY
         self.object_classes = object_classes
         self.mode = mode
+        # TODO: 感觉这里可以修改classes. 但是因为是模型，分类的话一般classes是固定的，因此在输出之后进行过滤。
 
         self.fasterRCNN = resnet(classes=self.object_classes, num_layers=101, pretrained=False, class_agnostic=False)
         self.fasterRCNN.create_architecture()
@@ -92,7 +97,7 @@ class detector(nn.Module):
                             cls_dets = cls_dets[order]
                             keep = nms(cls_boxes[order, :], cls_scores[order], 0.4) # NMS threshold
                             cls_dets = cls_dets[keep.view(-1).long()]
-
+                            # TODO: 将所有的BBox都视为Person，而不是划分为Person/Objects.
                             if j == 1:
                                 # for person we only keep the highest score for person!
                                 final_bbox = cls_dets[0,0:4].unsqueeze(0)
@@ -121,9 +126,9 @@ class detector(nn.Module):
                           'FINAL_FEATURES': FINAL_FEATURES, 'FINAL_BASE_FEATURES': FINAL_BASE_FEATURES}
 
             if self.is_train:
-
+                
                 DETECTOR_FOUND_IDX, GT_RELATIONS, SUPPLY_RELATIONS, assigned_labels = assign_relations(prediction, gt_annotation, assign_IOU_threshold=0.5)
-
+                # TODO: 如果不用这儿的use_SUPPLY: 查看下结果。
                 if self.use_SUPPLY:
                     # supply the unfounded gt boxes by detector into the scene graph generation training
                     FINAL_BBOXES_X = torch.tensor([]).cuda()
@@ -256,38 +261,65 @@ class detector(nn.Module):
 
             im_idx = []  # which frame are the relations belong to
             pair = []
-            a_rel = []
-            s_rel = []
+            # a_rel = []
+            # s_rel = []
             c_rel = []
 
+            # 由于是嵌套列表，所以这里应该两个for循环
             for i in gt_annotation:
-                bbox_num += len(i)
+                bbox_num += len(list(i.values())[0])
+            print(bbox_num)
+            # ipdb.set_trace()
+            bbox_num *= 2
             FINAL_BBOXES = torch.zeros([bbox_num,5], dtype=torch.float32).cuda()
             FINAL_LABELS = torch.zeros([bbox_num], dtype=torch.int64).cuda()
             FINAL_SCORES = torch.ones([bbox_num], dtype=torch.float32).cuda()
-            HUMAN_IDX = torch.zeros([len(gt_annotation),1], dtype=torch.int64).cuda()
+            # HUMAN_IDX = torch.zeros([len(bbox_num) // 2, 1], dtype=torch.int64).cuda()
 
             bbox_idx = 0
-            for i, j in enumerate(gt_annotation):
-                for m in j:
-                    if 'person_bbox' in m.keys():
-                        FINAL_BBOXES[bbox_idx,1:] = torch.from_numpy(m['person_bbox'][0])
-                        FINAL_BBOXES[bbox_idx, 0] = i
-                        FINAL_LABELS[bbox_idx] = 1
-                        HUMAN_IDX[i] = bbox_idx
-                        bbox_idx += 1
-                    else:
-                        FINAL_BBOXES[bbox_idx,1:] = torch.from_numpy(m['bbox'])
-                        FINAL_BBOXES[bbox_idx, 0] = i
-                        FINAL_LABELS[bbox_idx] = m['class']
-                        im_idx.append(i)
-                        pair.append([int(HUMAN_IDX[i]), bbox_idx])
-                        a_rel.append(m['attention_relationship'].tolist())
-                        s_rel.append(m['spatial_relationship'].tolist())
-                        c_rel.append(m['contacting_relationship'].tolist())
-                        bbox_idx += 1
+            # TODO: gt_annotation是一个list，其中包含多个帧。
+            for i, frame_info in enumerate(gt_annotation):
+                # ipdb.set_trace()
+                for m in list(frame_info.values())[0]:
+                    # ipdb.set_trace()
+                    FINAL_BBOXES[bbox_idx,1:] = torch.from_numpy(m['subject']['bbox'])
+                    FINAL_BBOXES[bbox_idx, 0] = i 
+                    FINAL_LABELS[bbox_idx] = 1  # person m['predicate']
+
+                    FINAL_BBOXES[bbox_idx + 1, 1:] = torch.from_numpy(m['object']['bbox']) # TODO: 这里仍然需要修改。
+                    FINAL_BBOXES[bbox_idx + 1, 0] = i 
+                    FINAL_LABELS[bbox_idx] = 1  # person
+                    im_idx.append(i)
+                    pair.append([bbox_idx, bbox_idx + 1])
+
+                    bbox_idx += 2
+                    # #需要注意的是，作者提到的三种关系都有一定的使用，需要在网络结构等处进行修改。
+                    c_rel.append(m['predicate'].tolist())
+
+                    # TODO: 将关系结果进行判断，
+                    # a_rel.append(m['attention_relationship'].tolist())  
+                    # c_rel.append(m['contacting_relationship'].tolist()) 
+
+                # for m in j:
+                #     if 'person_bbox' in m.keys():
+                #         FINAL_BBOXES[bbox_idx,1:] = torch.from_numpy(m['person_bbox'][0])
+                        
+                #         FINAL_LABELS[bbox_idx] = 1
+                #         HUMAN_IDX[i] = bbox_idx
+                #         bbox_idx += 1
+                #     else:
+                #         FINAL_BBOXES[bbox_idx,1:] = torch.from_numpy(m['bbox'])
+                #         FINAL_BBOXES[bbox_idx, 0] = i
+                #         FINAL_LABELS[bbox_idx] = m['class']
+                #         im_idx.append(i)
+                #         pair.append([int(HUMAN_IDX[i]), bbox_idx])
+                #         a_rel.append(m['attention_relationship'].tolist())
+                #         s_rel.append(m['spatial_relationship'].tolist())
+                #         c_rel.append(m['contacting_relationship'].tolist())
+                #         bbox_idx += 1
+            # ipdb.set_trace()
             pair = torch.tensor(pair).cuda()
-            im_idx = torch.tensor(im_idx, dtype=torch.float).cuda()
+            im_idx = torch.tensor(im_idx, dtype=torch.float).cuda() # 每一个object，这里都会计算一次。每一个object代表一个关系。
 
             counter = 0
             FINAL_BASE_FEATURES = torch.tensor([]).cuda()
@@ -302,32 +334,34 @@ class detector(nn.Module):
                 FINAL_BASE_FEATURES = torch.cat((FINAL_BASE_FEATURES, base_feat), 0)
                 counter += 10
 
-            FINAL_BBOXES[:, 1:] = FINAL_BBOXES[:, 1:] * im_info[0, 2]
+            FINAL_BBOXES[:, 1:] = FINAL_BBOXES[:, 1:] * im_info[0, 2]  # bounding Box的大小变换
             FINAL_FEATURES = self.fasterRCNN.RCNN_roi_align(FINAL_BASE_FEATURES, FINAL_BBOXES)
             FINAL_FEATURES = self.fasterRCNN._head_to_tail(FINAL_FEATURES)
 
+            # TODO: 主要还是要修改这里
             if self.mode == 'predcls':
-
+                # im_idx: 代表所有的paired的关系
                 union_boxes = torch.cat((im_idx[:, None], torch.min(FINAL_BBOXES[:, 1:3][pair[:, 0]], FINAL_BBOXES[:, 1:3][pair[:, 1]]),
                                          torch.max(FINAL_BBOXES[:, 3:5][pair[:, 0]], FINAL_BBOXES[:, 3:5][pair[:, 1]])), 1)
                 union_feat = self.fasterRCNN.RCNN_roi_align(FINAL_BASE_FEATURES, union_boxes)
-                FINAL_BBOXES[:, 1:] = FINAL_BBOXES[:, 1:] / im_info[0, 2]
+                FINAL_BBOXES[:, 1:] = FINAL_BBOXES[:, 1:] / im_info[0, 2] # Bounding Box变换回来
+                # 返回pair的subject和object
                 pair_rois = torch.cat((FINAL_BBOXES[pair[:, 0], 1:], FINAL_BBOXES[pair[:, 1], 1:]),
                                       1).data.cpu().numpy()
+                # 27是怎么来的？
+                # ipdb.set_trace()
                 spatial_masks = torch.tensor(draw_union_boxes(pair_rois, 27) - 0.5).to(FINAL_FEATURES.device)
-
+                # ipdb.set_trace()
                 entry = {'boxes': FINAL_BBOXES,
                          'labels': FINAL_LABELS, # here is the groundtruth
                          'scores': FINAL_SCORES,
                          'im_idx': im_idx,
                          'pair_idx': pair,
-                         'human_idx': HUMAN_IDX,
                          'features': FINAL_FEATURES,
                          'union_feat': union_feat,
                          'union_box': union_boxes,
                          'spatial_masks': spatial_masks,
-                         'attention_gt': a_rel,
-                         'spatial_gt': s_rel,
+                        #  'attention_gt': a_rel,
                          'contacting_gt': c_rel
                         }
 
@@ -346,6 +380,7 @@ class detector(nn.Module):
                     FINAL_BBOXES[:, 1:] = FINAL_BBOXES[:, 1:] / im_info[0, 2]
                     pair_rois = torch.cat((FINAL_BBOXES[pair[:, 0], 1:], FINAL_BBOXES[pair[:, 1], 1:]),
                                           1).data.cpu().numpy()
+                    # TODO: 这里原始的为什么是27?
                     spatial_masks = torch.tensor(draw_union_boxes(pair_rois, 27) - 0.5).to(FINAL_FEATURES.device)
 
                     entry = {'boxes': FINAL_BBOXES,
@@ -355,13 +390,13 @@ class detector(nn.Module):
                              'pred_labels': PRED_LABELS,
                              'im_idx': im_idx,
                              'pair_idx': pair,
-                             'human_idx': HUMAN_IDX,
+                            #  'human_idx': HUMAN_IDX,
                              'features': FINAL_FEATURES,
                              'union_feat': union_feat,
                              'union_box': union_boxes,
                              'spatial_masks': spatial_masks,
-                             'attention_gt': a_rel,
-                             'spatial_gt': s_rel,
+                            #  'attention_gt': a_rel,
+                            #  'spatial_gt': s_rel,
                              'contacting_gt': c_rel}
 
                     return entry
@@ -379,9 +414,9 @@ class detector(nn.Module):
                              'pred_labels': PRED_LABELS,
                              'im_idx': im_idx,
                              'pair_idx': pair,
-                             'human_idx': HUMAN_IDX,
+                            #  'human_idx': HUMAN_IDX,
                              'features': FINAL_FEATURES,
-                             'attention_gt': a_rel,
+                            #  'attention_gt': a_rel,
                              'spatial_gt': s_rel,
                              'contacting_gt': c_rel,
                              'fmaps': FINAL_BASE_FEATURES,
