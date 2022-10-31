@@ -38,7 +38,7 @@ def box_transform(box):
     return [x, y, w, h]
 
 
-def txt2json(path, txt_path, json_path):
+def txt2json(txt_path, json_path):
     # with open(txt_path, 'r') as f:
     #     s = f.read().split()
     #     f.close()
@@ -314,6 +314,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser("Set Data of TRACE", add_help=False)
     parser.add_argument("--path_anno", default="./data/chaos/annotations", type=str)
     parser.add_argument("--path_json", default="/home/chaos/data/Chaos/dataset/annotation/activity_graph/vidvrd_format/annotation", type=str)
+
     args = parser.parse_args()
 
     path = args.path_anno
@@ -322,15 +323,25 @@ if __name__ == '__main__':
     obj_json_path = os.path.join(path, 'objects.json')
     pred_txt_path = os.path.join(path, 'predicate.txt')
     pred_json_path = os.path.join(path, 'predicates.json')
+    train_videos_txt = os.path.join(path, 'train_videos_list.txt')
+    test_videos_txt = os.path.join(path, 'test_videos_list.txt')
+    
     if not os.path.exists(obj_json_path):
-        obj_class_list = txt2json(path, obj_txt_path, obj_json_path) #35
+        obj_class_list = txt2json(obj_txt_path, obj_json_path) #35
     else:
         with open(obj_json_path, 'r') as f:
             obj_class_list = json.load(f)
             f.close()
+    
+    # TODO: 这里每次都要执行，覆盖掉原文件。
+    if not os.path.exists(os.path.join(path, 'test_videos_list.json')):
+        test_videos_list = txt2json(test_videos_txt, os.path.join(path, 'test_videos_list.json'))
         
+    if not os.path.exists(os.path.join(path, 'train_videos_list.json')):
+        train_videos_list = txt2json(train_videos_txt, os.path.join(path, 'train_videos_list.json')) 
+    
     if not os.path.exists(pred_json_path):
-        pred_class_list = txt2json(path, pred_txt_path, pred_json_path) #132
+        pred_class_list = txt2json(pred_txt_path, pred_json_path) #132
     else:
         with open(pred_json_path, 'r') as f:
             pred_class_list = json.load(f)
@@ -345,6 +356,6 @@ if __name__ == '__main__':
     if not os.path.exists(rel_val_new_anno_json_path):
         process_vrd_split(pred_class_list, obj_class_list, out_split='val', anno_dir = path_json)
 
-    # rel_test_new_anno_json_path = os.path.join(path, 'new_annotations_test.json')
-    # if not os.path.exists(rel_test_new_anno_json_path):
-    #     process_vrd_split(pred_class_list, obj_class_list, out_split='test', anno_dir = path_json) 
+    rel_test_new_anno_json_path = os.path.join(path, 'new_annotations_test.json')
+    if not os.path.exists(rel_test_new_anno_json_path):
+        process_vrd_split(pred_class_list, obj_class_list, out_split='test', anno_dir = path_json) 

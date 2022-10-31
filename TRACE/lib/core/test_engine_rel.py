@@ -282,6 +282,11 @@ def test_net(
             (len(cfg.TEST.DATASETS) > 0 and \
             cfg.TEST.DATASETS[0].find('ag') >= 0):
             im_id_st = 1
+        elif (len(cfg.TRAIN.DATASETS) > 0 and \
+            cfg.TRAIN.DATASETS[0].find('chaos') >= 0) or \
+            (len(cfg.TEST.DATASETS) > 0 and \
+            cfg.TEST.DATASETS[0].find('chaos') >= 0):
+            im_id_st = 1
         else:
             im_id_st = 1
         

@@ -56,6 +56,11 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
         with open(val_map_list_path, 'r') as f:
             val_map_list = json.load(f)
             f.close()    
+    elif cfg.TEST.DATASETS[0].find('chaos') >= 0:
+        val_map_list_path = os.path.join(cfg.ROOT_DIR, 'data', 'chaos', 'annotations/test_videos_list.json') # val_videos_list.json
+        with open(val_map_list_path, 'r') as f:
+            val_map_list = json.load(f)
+            f.close() 
     elif cfg.TEST.DATASETS[0].find('vidvrd_train') >= 0:
         val_map_list_path = os.path.join(cfg.ROOT_DIR, 'data', 'vidvrd', 'annotations/train_fname_list.json')
         with open(val_map_list_path, 'r') as f:
@@ -78,18 +83,18 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
             if len(ll) >= 2:
                 val_map_list_.add(ll[-2].split('.')[-2])
         val_map_list = list(val_map_list_)
-    ## Add the chaos.
-    elif cfg.TEST.DATASETS[0].find('chaos') >= 0:
-        val_map_list_path = os.path.join(cfg.ROOT_DIR, 'data', 'chaos', 'annotations/val_fname_list.json')
-        with open(val_map_list_path, 'r') as f:
-            val_map_list = json.load(f)
-            f.close()
-        val_map_list_ = set()
-        for i, v in enumerate(val_map_list):
-            ll = v.split('/')
-            if len(ll) >= 2:
-                val_map_list_.add(ll[-2].split('.')[-2])
-        val_map_list = list(val_map_list_)
+    ## TODO: Add the chaos and Motify to AG format.
+    # elif cfg.TEST.DATASETS[0].find('chaos') >= 0:
+    #     val_map_list_path = os.path.join(cfg.ROOT_DIR, 'data', 'chaos', 'annotations/val_fname_list.json')
+    #     with open(val_map_list_path, 'r') as f:
+    #         val_map_list = json.load(f)
+    #         f.close()
+    #     val_map_list_ = set()
+    #     for i, v in enumerate(val_map_list):
+    #         ll = v.split('/')
+    #         if len(ll) >= 2:
+    #             val_map_list_.add(ll[-2].split('.')[-2])
+    #     val_map_list = list(val_map_list_)
     else:
         raise Exception
     print('test_videos_list.json loaded.')
@@ -107,7 +112,8 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
         prd_k_set = (20, )
     ### number of predicate.
     elif cfg.TEST.DATASETS[0].find('chaos') >= 0:
-        prd_k_set = (10, ) 
+        # prd_k_set = (5, 10, 20)
+        prd_k_set = (1, 6, 7)
     elif cfg.TEST.DATASETS[0].find('vg') >= 0:
         prd_k_set = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20)
     elif cfg.TEST.DATASETS[0].find('vrd') >= 0:
@@ -157,7 +163,6 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
                 if cfg.TEST.DATASETS[0].find('vidvrd') >= 0:
                     if res is None:
                         continue
-                
                 mm = res['image'].split('/')
                 file_real_name = mm[-2]
                 cur_frame_id = int(mm[-1].split('.')[0])
@@ -300,14 +305,18 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
                             iou_thresh=0.5,
                             phrdet=phrdet)
                     else:
+                        det_boxes_r_top = boxes_union(det_boxes_s_top, det_boxes_o_top)
+                        gt_boxes_r = boxes_union(gt_boxes_sbj, gt_boxes_obj)
                         pred_to_gt = _compute_pred_matches(
                             gt_labels_spo, det_labels_spo_top,
-                            gt_boxes_so, det_boxes_so_top,
+                            gt_boxes_r, det_boxes_r_top,
                             iou_thresh=0.5,
                             phrdet=phrdet)
                     
                     all_gt_cnt += gt_labels_spo.shape[0]
                     #all_gt_cnt += 1
+                    # TODO: Check the error of testing. Need to Debug.
+                    # ipdb.set_trace()
                     video_gt_cnt[file_real_name] += gt_labels_spo.shape[0]
                     #video_gt_cnt[file_real_name] += 1
                     
@@ -315,16 +324,6 @@ def eval_rel_results(all_results, output_dir, topk=100, do_val=True):
                         if len(pred_to_gt):
                             match = reduce(np.union1d, pred_to_gt[:k])
                             
-                            #if k == 50:
-                            #    print()
-                            #    print(match)
-                            #    print(gt_labels_spo.shape)
-                            #    print()
-                            #    gtid, prdid = debug_match(pred_to_gt[:k])
-                            #    print(gt_labels_spo[gtid])
-                            #    print(det_labels_spo_top[prdid])
-                            #    print(gt_boxes_so[gtid])
-                            #    print(det_boxes_so_top[prdid])
                         else:
                             match = []
                             

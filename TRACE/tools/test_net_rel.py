@@ -157,16 +157,16 @@ if __name__ == '__main__':
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/vidvrd/annotations/objects.json')
         cfg.MODEL.NUM_CLASSES = 36
         cfg.MODEL.NUM_PRD_CLASSES = 132  # exclude background
-
+    # TODO: Classes of Training and Evaluation. Motified to 37. like ag.；
     elif args.dataset == "chaos_train":
         cfg.TEST.DATASETS = ('chaos_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
-        cfg.MODEL.NUM_CLASSES = 36
+        cfg.MODEL.NUM_CLASSES = 37
         cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background
     elif args.dataset == "chaos":
         cfg.TEST.DATASETS = ('chaos_val',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
-        cfg.MODEL.NUM_CLASSES = 36
+        cfg.MODEL.NUM_CLASSES = 37
         cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background
     elif args.dataset == "ag_train":
         cfg.TEST.DATASETS = ('ag_train',)

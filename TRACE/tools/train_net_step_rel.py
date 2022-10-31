@@ -210,13 +210,13 @@ def main(args):
     elif args.dataset == "chaos":
         cfg.TRAIN.DATASETS = ('chaos_train',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
-        # TODO: 此处修改为NUM_CLASSES=2 如何？
-        cfg.MODEL.NUM_CLASSES = 36     # including the background. so the classes are ['person', 'background']
+        # TODO: 此处应该修改为和AG同样的种类。37.而且要替换掉VidVRD。如果要使用AG的预训练模型：37； VidVRD:36
+        cfg.MODEL.NUM_CLASSES = 37     # including the background. so the classes are ['person', 'background']
         cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background 
     elif args.dataset == "chaos_val":
         cfg.TRAIN.DATASETS = ('chaos_val',)
         cfg.MODEL.OBJ_CLASS_FILE_NAME = os.path.join(cfg.ROOT_DIR, 'data/chaos/annotations/objects.json')
-        cfg.MODEL.NUM_CLASSES = 36
+        cfg.MODEL.NUM_CLASSES = 37
         cfg.MODEL.NUM_PRD_CLASSES = 22  # exclude background  
 
     elif args.dataset == "ag":
